@@ -416,3 +416,25 @@
   .walk-header {margin-bottom:14px;}
   .walk-lesson > header {margin-top:16px;}
 }
+
+.pool-screening {
+  padding-inline-start: 1.5rem;
+  margin-block: 1rem 1.25rem;
+}
+.pool-screening > li {
+  padding: .7rem .75rem;
+  border-bottom: 1px solid #dce3d9;
+}
+.pool-screening > li::marker {
+  color: #285840;
+  font-weight: 700;
+}
+.pool-screening p {
+  margin-block: .25rem;
+}
+.pool-screening details {
+  margin-top: .45rem;
+}
+.pool-screening details ul {
+  padding-inline-start: 1.25rem;
+}

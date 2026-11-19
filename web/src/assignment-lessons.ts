@@ -179,15 +179,15 @@ export const lessons = [
   {
     id: "pool",
     chapter: 1,
-    short: "Choose candidates",
-    title: "Which companies can we try in a group?",
+    short: "Check which companies qualify",
+    title: "Which companies can enter the search?",
     purpose:
-      "Now the question is how much three businesses sell together. Either outreach tier can enter the search.",
+      "Before we try groups of three, the original analysis checks each company on its own.",
     parts: [
       {
-        title: "Keep companies with a known industry, software and sales",
+        title: "Check who buys the software and how much it sells",
         explanation:
-          "We need a specific type of customer, software for that industry and a usable sales figure from the file. When a check fails, save the first reason and stop checking that row.",
+          "The code checks customer industry first, then software type, then reported sales. A return line records the first reason a company is set aside. A company that passes all three receives the label Eligible.",
         source: excerpt(
           "analysis.py",
           'if not account["vertical"]:',
@@ -195,9 +195,9 @@ export const lessons = [
         ),
       },
       {
-        title: "Set aside companies that already cost too much",
+        title: "Check each company’s price against the budget",
         explanation:
-          "Compare the price of one company with the whole budget. If it already costs the budget or more, adding two other companies cannot make the purchase affordable.",
+          "Here, value is one company’s estimated purchase price. The < sign means strictly less than. At a $30M budget, a $30M company is already at the limit. The code adds only companies priced below the limit to the list it will try in groups.",
         source: excerpt(
           "groups.py",
           "if value < budget_cents:",

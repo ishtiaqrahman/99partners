@@ -331,45 +331,69 @@ function WorkedExample({
             </p>
           )}
           <p>
-            A company with only estimated sales cannot contribute revenue to a
-            winning group.
+            The original group search uses reported sales. You can include estimated sales in a separate scenario on the Combinations page.
           </p>
         </>
       );
-    case "pool":
+    case "pool": {
+      const eligible = meta.eligibility.Eligible || 0;
+      const exclusions = [
+        ["No specific customer industry identified", "Unresolved / horizontal customer"],
+        ["Product falls outside the software types we look for", "Services / unresolved product"],
+        ["No usable reported sales", "Missing / invalid observed revenue"],
+      ];
+      const examples = [record("0008"), record("0053")];
       return (
         <>
-          <h3>How many companies reach the search?</h3>
-          <Trace
-            items={[
-              ["Companies in the file", number(meta.total)],
-              [
-                "Pass the buyer, product and sales checks",
-                number(meta.eligibility.Eligible || 0),
-              ],
-              ["Also cost less than " + money(cap), number(result.pool_size)],
-            ]}
-          />
+          <h3>Start with the company list</h3>
+          <p>“Pool” means the list of companies the original analysis can try in groups of three.</p>
+          <ol className="pool-screening">
+            <li>
+              <strong>{number(meta.total)} companies in the file</strong>
+            </li>
+            <li>
+              <strong>{number(eligible)} pass the company checks</strong>
+              <p>Each company needs an identifiable customer industry, core software or a software add-on built for that industry, and usable reported sales.</p>
+              <details>
+                <summary>Why were {number(meta.total - eligible)} companies set aside?</summary>
+                <ul>
+                  {exclusions.map(([label, reason]) => (
+                    <li key={reason}><b>{number(meta.eligibility[reason] ?? 0)}</b> · {label}</li>
+                  ))}
+                </ul>
+                <p>Each company is counted under the first check it misses.</p>
+              </details>
+            </li>
+            <li>
+              <strong>{number(result.pool_size)} can be tried in groups</strong>
+              <p>Of the companies that passed, {number(eligible - result.pool_size)} cost {money(cap)} or more by themselves. Each company must cost less than the whole budget so there is room for two more.</p>
+            </li>
+          </ol>
+          <h3>Outreach priority answers a different question</h3>
+          <p>Tier A and Tier B tell us who to contact first. Companies from either tier can pass the checks above.</p>
           <div className="walk-verdicts">
-            {[record("0008"), record("0053")].map(
-              (a) =>
-                a && (
-                  <div key={a.ref_id}>
-                    <strong>
-                      Company {a.ref_id} · Tier {a.tier}
-                    </strong>
-                    <p>
-                      {a.grouping_status === "Eligible"
-                        ? "Can enter. Its customers are known and it reported sales."
-                        : "Cannot enter. Its annual sales are missing."}
-                    </p>
-                    {inspect(a)}
-                  </div>
-                ),
-            )}
+            {examples.map((company) => {
+              if (!company) return null;
+              const passesChecks = company.grouping_status === "Eligible";
+              const fitsBudget = company.valuation_cents < cap;
+              return (
+                <div key={company.ref_id}>
+                  <strong>Company {company.ref_id} · Tier {company.tier}</strong>
+                  <p>{passesChecks
+                    ? `Passes the company checks with ${money(company.revenue_cents)} in reported sales. At an estimated ${money(company.valuation_cents)}, it ${fitsBudget ? "can enter the search" : "reaches or exceeds the budget"}.`
+                    : company.revenue_cents === null
+                      ? "The original search sets it aside because it lacks usable reported sales."
+                      : "The original search sets it aside at the company checks."}</p>
+                  {inspect(company)}
+                </div>
+              );
+            })}
           </div>
+          <p>Next, the search tests whether each group serves three different industries and whether the three prices together are below the budget.</p>
+          <a className="walk-link" href={linkTo("trios")}>See how a group of three is checked <ArrowRight size={14} /></a>
         </>
       );
+    }
     case "trios":
       return (
         <>
