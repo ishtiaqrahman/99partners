@@ -7,14 +7,16 @@ requests compute in memory and never write the official export directory.
 from functools import lru_cache
 import os
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .pipeline import build, DEFAULT_INPUT, FILES, ROOT
 from .filters import Filters, filter_accounts, interpret
-from .groups import optimize
+from .groups import optimize, scenario_price
+from .policy import MULTIPLES
 
 
 class AccountQuery(BaseModel):
@@ -36,6 +38,14 @@ class Scenario(BaseModel):
     uniform: bool = False
     explicit_only: bool = False
     core_only: bool = False
+    multiples_hundredths: dict[str, Annotated[int, Field(strict=True, ge=1, le=10000)]] = Field(default_factory=dict)
+
+    @field_validator("multiples_hundredths")
+    @classmethod
+    def known_roles(cls, values):
+        if values.keys() - MULTIPLES.keys():
+            raise ValueError("Unknown product category.")
+        return values
 
 
 def create_app(input_path=DEFAULT_INPUT, output_path=ROOT / "outputs"):
@@ -82,18 +92,21 @@ def create_app(input_path=DEFAULT_INPUT, output_path=ROOT / "outputs"):
         return baseline
 
     @lru_cache(maxsize=32)
-    def run_scenario(budget_cents, uniform, explicit_only, core_only):
-        return optimize(accounts, budget_cents, uniform, explicit_only, core_only)
+    def run_scenario(budget_cents, uniform, explicit_only, core_only, multiple_items):
+        return optimize(accounts, budget_cents, uniform, explicit_only, core_only, dict(multiple_items))
 
     @app.post("/api/scenarios")
     def scenario(body: Scenario):
-        result = run_scenario(**body.model_dump())
+        result = run_scenario(
+            body.budget_cents, body.uniform, body.explicit_only, body.core_only,
+            tuple(sorted(body.multiples_hundredths.items())),
+        )
         comparison = None
         if baseline["groups"]:
             first = baseline["groups"][0]
             original = [by_id[i] for i in first["ids"]]
             cost = sum(
-                a["revenue_cents"] * 2 if body.uniform else a["valuation_cents"]
+                scenario_price(a, body.uniform, body.multiples_hundredths)[1]
                 for a in original
             )
             excluded = any(

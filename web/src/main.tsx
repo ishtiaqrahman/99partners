@@ -160,6 +160,7 @@ function App() {
                 <Groups
                   route={groupRoute}
                   onScreen={setGroupScreen}
+                  defaultMultiples={meta.multiples}
                   eligibleCount={meta.eligibility.Eligible || 0}
                   open={(id) => navigate(view, id)}
                 />
@@ -202,7 +203,7 @@ function App() {
             q.set("about", selected);
             location.hash = q.toString();
           }}
-          uniformPrice={view === "groups" && !!groupScreen?.applied.uniform}
+          scenarioSettings={view === "groups" ? groupScreen?.applied : undefined}
           tags={tags[selected] || []}
           setTags={(next) => updateTags(selected, next)}
           close={() => navigate(view)}

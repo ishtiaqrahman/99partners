@@ -2484,3 +2484,53 @@ table.comparison-table {
  .compact-companies td:last-child {display:none;}
  .group-card,.walkthrough h2 {scroll-margin-top:105px;}
 }
+
+.scenario-multiples {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+.scenario-multiples > summary {
+  font-weight: 700;
+}
+.scenario-multiples > summary::after {
+  content: none;
+}
+.scenario-multiples > p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 9px 0;
+}
+.scenario-multiples label {
+  display: grid;
+  grid-template-columns: 1fr 72px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.scenario-multiples small {
+  display: block;
+  color: var(--muted);
+}
+.scenario-multiples input,
+.scenario-lookup input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px;
+  font: inherit;
+}
+.scenario-lookup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.scenario-lookup label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}

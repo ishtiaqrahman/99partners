@@ -15,6 +15,8 @@ import {
   Preview,
 } from "./types";
 
+import { scenarioPrice, validOverrides } from "./scenario-pricing";
+
 export type Snapshot = {
   accounts: Account[];
   meta: Meta;
@@ -72,9 +74,11 @@ export function optimizeHosted(
   parameters: Parameters,
 ): GroupResult {
   const start = performance.now();
-  const { budget_cents: cap, uniform, explicit_only, core_only } = parameters;
+  const { budget_cents: cap, explicit_only, core_only } = parameters;
   if (!Number.isSafeInteger(cap) || cap <= 0 || cap > 100000000000)
     throw new Error("Budget must be between $0.01 and $1 billion.");
+  if (parameters.multiples_hundredths !== undefined && !validOverrides(parameters.multiples_hundredths))
+    throw new Error("Enter multiples from 0.01× to 100× with up to two decimal places.");
   const pool: Candidate[] = accounts
     .filter(
       (a) =>
@@ -85,7 +89,7 @@ export function optimizeHosted(
     .map((a) => ({
       account: a,
       revenue: a.revenue_cents!,
-      cost: uniform ? a.revenue_cents! * 2 : a.valuation_cents,
+      cost: scenarioPrice(a, parameters).valuation_cents,
     }))
     .filter((a) => a.cost < cap)
     .sort(
@@ -162,8 +166,7 @@ export function optimizeHosted(
           tier: a.tier,
           revenue_cents: a.revenue_cents!,
           revenue_high_cents: a.revenue_high_cents!,
-          multiple: uniform ? 2 : a.multiple,
-          valuation_cents: uniform ? a.revenue_cents! * 2 : a.valuation_cents,
+          ...scenarioPrice(a, parameters),
           flags: a.evidence_tags,
         };
       }),
@@ -184,7 +187,7 @@ export function compareScenario(snapshot: Snapshot, parameters: Parameters) {
   );
   const cost = members.reduce(
     (sum, a) =>
-      sum + (parameters.uniform ? a.revenue_cents! * 2 : a.valuation_cents),
+      sum + scenarioPrice(a, parameters).valuation_cents,
     0,
   );
   const excluded = members.some(

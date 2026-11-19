@@ -31,6 +31,7 @@ for changes in [
     {},
     {"budget_cents": 2500000000},
     {"uniform": True},
+    {"multiples_hundredths": {"Vertical add-on": 250, "Core workflow": 275}},
     {"explicit_only": True},
     {"core_only": True},
     {"budget_cents": 1},
@@ -101,7 +102,7 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {optimizeHosted,interpretHosted,selectAccounts} from './engine.mjs';
 const data=JSON.parse(readFileSync(process.argv[2],'utf8'));
-const key=result=>result.groups.map(g=>[g.ids,g.revenue_cents,g.valuation_cents,g.headroom_cents]);
+const key=result=>result.groups.map(g=>[g.ids,g.revenue_cents,g.valuation_cents,g.headroom_cents,g.members.map(m=>[m.multiple,m.valuation_cents])]);
 for(const s of data.scenarios){
  const actual=optimizeHosted(data.accounts,s.parameters);
  assert.deepEqual(key(actual),key(s.expected));
@@ -118,6 +119,6 @@ for(const s of data.random_cases){
 }
 for(const q of data.queries)assert.deepEqual(interpretHosted(q.text,data.buyers),q.expected);
 assert.deepEqual(selectAccounts(data.accounts,{tier:'A',country:'Canada'}).map(a=>a.ref_id),data.manual_ids);
-console.log('Matched 7 full-data scenarios, 12 independent fixtures, 8 query interpretations, and account filters.');
+console.log('Matched 8 full-data scenarios, 12 independent fixtures, 8 query interpretations, and account filters.');
 """)
     subprocess.run(["node", str(verifier), str(fixture_path)], check=True)

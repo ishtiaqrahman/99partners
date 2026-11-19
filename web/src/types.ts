@@ -1,3 +1,4 @@
+import type { MultipleOverrides } from "./scenario-pricing";
 /** Money is integer USD cents across the API; formatting happens at the edge. */
 export type Account = {
   ref_id: string;
@@ -119,6 +120,7 @@ export type Group = {
   }[];
 };
 export type Parameters = {
+  multiples_hundredths?: MultipleOverrides;
   budget_cents: number;
   uniform: boolean;
   explicit_only: boolean;

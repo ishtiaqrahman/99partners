@@ -1,7 +1,8 @@
 /** The account evidence panel connects original source text to tier, revenue conversion and valuation. Local analyst tags do not alter those decisions. */
 import { useEffect, useRef, useState } from "react";
 import { FileText, Plus, Target, X } from "lucide-react";
-import { Account, api, money, customerIndustry } from "./types";
+import { Account, api, money, customerIndustry, type Parameters } from "./types";
+import { scenarioPrice } from "./scenario-pricing";
 import { Badge, ErrorBox, Explanation, productLabels } from "./common";
 
 export function AccountDrawer({
@@ -9,11 +10,11 @@ export function AccountDrawer({
   close,
   tags,
   setTags,
-  uniformPrice,
+  scenarioSettings,
   ask,
 }: {
   id: string;
-  uniformPrice: boolean;
+  scenarioSettings?: Parameters;
   ask: () => void;
   close: () => void;
   tags: string[];
@@ -251,11 +252,9 @@ export function AccountDrawer({
                   <strong>{money(a.valuation_cents, true)}</strong>
                 </div>
               </div>
-              {uniformPrice && a.grouping_status === "Eligible" && (
-                <p className="decision-note">
-                  Scenario price at 2× annual sales ·{" "}
-                  <b>{money(a.revenue_cents! * 2, true)}</b>
-                </p>
+              {scenarioSettings &&
+                (scenarioSettings.uniform || Object.keys(scenarioSettings.multiples_hundredths ?? {}).length > 0) && (
+                <ScenarioPrice account={a} settings={scenarioSettings} />
               )}
               {a.revenue_low_cents !== null &&
                 a.revenue_low_cents !== a.revenue_high_cents && (
@@ -376,5 +375,16 @@ export function AccountDrawer({
         )}
       </aside>
     </div>
+  );
+}
+
+
+function ScenarioPrice({ account, settings }: { account: Account; settings: Parameters }) {
+  const price = scenarioPrice(account, settings);
+  return (
+    <p className="decision-note">
+      Scenario price at {price.multiple}× {account.peer_count > 0 ? "estimated sales" : "annual sales"} ·{" "}
+      <b>{money(price.valuation_cents, true)}</b>
+    </p>
   );
 }

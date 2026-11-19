@@ -231,6 +231,13 @@ def test_exports_and_scenarios(tmp_path):
             "/api/scenarios", json={"budget_cents": 2500000000}
         ).json()
         assert changed["groups"][0]["valuation_cents"] < 2500000000
+        repriced = client.post(
+            "/api/scenarios", json={"multiples_hundredths": {"Vertical add-on": 250}}
+        ).json()
+        assert repriced["comparison"]["original_cost_cents"] == 3749750000
+        assert repriced["groups"][0]["ids"] != client.get("/api/groups").json()["groups"][0]["ids"]
+        assert client.post("/api/scenarios", json={"multiples_hundredths": {"unknown": 250}}).status_code == 422
+        assert client.post("/api/scenarios", json={"multiples_hundredths": {"Vertical add-on": 0}}).status_code == 422
         assert (
             client.post("/api/scenarios", json={"budget_cents": 1}).json()["groups"]
             == []

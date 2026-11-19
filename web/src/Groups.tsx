@@ -17,16 +17,19 @@ import {
   GroupScreen,
 } from "./types";
 import { groupLink, readGroupLocation } from "./group-location";
-import { Badge, ErrorBox, Explanation, number } from "./common";
+import { Badge, ErrorBox, Explanation, number, productLabels } from "./common";
+import { multipleKey, PRODUCT_ROLES, scaledPrice, validOverrides } from "./scenario-pricing";
 
 /** Scenarios are explicit requests; pending controls never relabel old results. */
 export function Groups({
   eligibleCount,
+  defaultMultiples,
   open,
   route,
   onScreen,
 }: {
   eligibleCount: number;
+  defaultMultiples: Record<string, number>;
   open: (id: string) => void;
   route: string;
   onScreen: (screen: GroupScreen | null) => void;
@@ -38,6 +41,7 @@ export function Groups({
   const [baseline, setBaseline] = useState<GroupResult | null>(null);
   const [scenario, setScenario] = useState<GroupResult | null>(null);
   const [params, setParams] = useState<Parameters>(BASE_PARAMETERS);
+  const [lookup, setLookup] = useState("");
   const [error, setError] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(
     () => window.innerWidth > 760,
@@ -94,12 +98,16 @@ export function Groups({
       overlap[id] = (overlap[id] || 0) + 1;
     }),
   );
+  const [multiplesOpen, setMultiplesOpen] = useState(() => !!settings?.multiples_hundredths);
+  const multipliersValid = validOverrides(params.multiples_hundredths ?? {});
   // Compare against the settings that produced the visible results, including on the first edit.
   const dirty =
     !!result &&
     Object.keys(params).some((key) => {
       const field = key as keyof Parameters;
-      return params[field] !== result.parameters[field];
+      return field === "multiples_hundredths"
+        ? multipleKey(params[field]) !== multipleKey(result.parameters[field])
+        : params[field] !== result.parameters[field];
     });
   useEffect(() => {
     onScreen(
@@ -116,6 +124,8 @@ export function Groups({
   const originalBest = baseline?.groups[0];
   const scenarioBest = scenario?.groups[0];
   const topGroup = result?.groups[0];
+  const appliedMultiples = result?.parameters.multiples_hundredths ?? {};
+  const changedRoles = PRODUCT_ROLES.filter((role) => appliedMultiples[role] !== undefined);
   const tied =
     !!result &&
     !!topGroup &&
@@ -196,9 +206,13 @@ export function Groups({
                 <h2>{scenario ? "Scenario results" : "Original analysis"}</h2>
                 <p>
                   Below {money(result.parameters.budget_cents)} ·{" "}
-                  {result.parameters.uniform
-                    ? "2× revenue for all software"
-                    : "standard valuation rules"}
+                  {changedRoles.length
+                    ? changedRoles.map((role) =>
+                        productLabels[role] + " " + appliedMultiples[role]! / 100 + "×",
+                      ).join(", ")
+                    : result.parameters.uniform
+                      ? "2× revenue for all software"
+                      : "standard valuation rules"}
                   {" · "}
                   {result.parameters.core_only
                     ? "core software only"
@@ -301,6 +315,18 @@ export function Groups({
                   </p>
                 </div>
               )}
+              {scenario && changedRoles.length > 0 && (
+                <form className="scenario-lookup" onSubmit={(event) => {
+                  event.preventDefault();
+                  open(lookup.trim().padStart(4, "0"));
+                }}>
+                  <label>Check a company’s scenario price
+                    <input value={lookup} onChange={(event) => setLookup(event.target.value)}
+                      inputMode="numeric" pattern="[0-9]{1,4}" placeholder="Company ID, e.g. 0012" required />
+                  </label>
+                  <button className="button secondary" type="submit">Show price</button>
+                </form>
+              )}
               {result.groups.length === 0 && (
                 <div className="empty card">
                   <Layers size={30} />
@@ -324,9 +350,9 @@ export function Groups({
         >
           <summary className="section-title">
             <SlidersHorizontal size={18} />
-            <strong>Try a different budget or rule</strong>
+            <strong>Try a different budget, price or rule</strong>
           </summary>
-          <p>Change the budget or rules, then calculate to see what changes.</p>
+          <p>Change the budget, multiples or rules, then calculate to see what changes.</p>
           <label className="budget-label">
             Budget limit <span>USD millions</span>
             <div className="budget-input">
@@ -369,15 +395,50 @@ export function Groups({
             <input
               type="checkbox"
               checked={params.uniform}
-              onChange={(e) =>
-                setParams({ ...params, uniform: e.target.checked })
+              onChange={(event) =>
+                setParams({ ...params, uniform: event.currentTarget.checked })
               }
             />
             <span>
               Value all software at 2× revenue
-              <small>Core software normally uses 3× revenue</small>
+              <small>Any multiple you enter below takes priority</small>
             </span>
           </label>
+          <details className="scenario-multiples" open={multiplesOpen}
+            onToggle={(event) => setMultiplesOpen(event.currentTarget.open)}>
+            <summary>Change valuation multiples</summary>
+            <p>A 2.5× multiple prices a company with $4M in annual sales at $10M.</p>
+            {PRODUCT_ROLES.map((role) => {
+              const overrides = params.multiples_hundredths ?? {};
+              const original = defaultMultiples[role];
+              const scale = overrides[role] ?? (params.uniform &&
+                (role === "Core workflow" || role === "Vertical add-on") ? 200 : original * 100);
+              return (
+                <label key={role}>
+                  <span>{productLabels[role] || role}<small>Original {original}×</small></span>
+                  <input
+                    type="number" min="0.01" max="100" step="0.01"
+                    aria-label={(productLabels[role] || role) + " sales multiple"}
+                    value={Number.isFinite(scale) ? scale / 100 : ""}
+                    onChange={(event) => {
+                      const value = event.currentTarget.valueAsNumber;
+                      const next = { ...overrides };
+                      const hundredths = Math.round(value * 100);
+                      const valid = Math.abs(value * 100 - hundredths) < 1e-8;
+                      const fallback = params.uniform &&
+                        (role === "Core workflow" || role === "Vertical add-on") ? 200 : original * 100;
+                      if (valid && hundredths === fallback) delete next[role];
+                      else next[role] = valid ? hundredths : NaN;
+                      setParams({ ...params, multiples_hundredths: next });
+                    }}
+                  />
+                  <span aria-hidden="true">×</span>
+                </label>
+              );
+            })}
+            {!multipliersValid && <p role="status">Enter a multiple from 0.01× to 100× with up to two decimal places.</p>}
+            <p>Estimated prices and combination rankings update together. Reported sales and outreach tiers stay the same.</p>
+          </details>
           <label className="check-option">
             <input
               type="checkbox"
@@ -407,7 +468,7 @@ export function Groups({
           <button
             className="button primary full"
             disabled={
-              busy ||
+              busy || !multipliersValid ||
               params.budget_cents <= 0 ||
               params.budget_cents > 100000000000
             }
@@ -567,7 +628,7 @@ function GroupCard({
   open: (id: string) => void;
 }) {
   const highCost = group.members.reduce(
-    (sum, m) => sum + (m.revenue_high_cents ?? m.revenue_cents) * m.multiple,
+    (sum, m) => sum + scaledPrice(m.revenue_high_cents ?? m.revenue_cents, Math.round(m.multiple * 100)),
     0,
   );
   return (
