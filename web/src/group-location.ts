@@ -7,6 +7,7 @@ export function groupLink(settings: Parameters | null, rank = 1) {
     query.set("budget", String(settings.budget_cents));
     if (Object.keys(settings.multiples_hundredths ?? {}).length)
       query.set("multiples", multipleKey(settings.multiples_hundredths));
+    if (settings.include_estimated) query.set("estimates", "1");
     if (settings.uniform) query.set("uniform", "1");
     if (settings.core_only) query.set("core", "1");
     if (settings.explicit_only) query.set("currency", "1");
@@ -28,6 +29,7 @@ export function readGroupLocation(query: URLSearchParams) {
       ? {
           budget_cents: cap,
           ...(encoded ? { multiples_hundredths: overrides } : {}),
+          ...(query.get("estimates") === "1" ? { include_estimated: true } : {}),
           uniform: query.get("uniform") === "1",
           core_only: query.get("core") === "1",
           explicit_only: query.get("currency") === "1",

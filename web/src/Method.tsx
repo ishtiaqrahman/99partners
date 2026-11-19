@@ -336,6 +336,11 @@ export function Method({
             {(meta.eligibility.Eligible || 0) - meta.search_pool} already cost
             the whole budget or more on their own.
           </p>
+          <p>
+            {scenario?.include_estimated ? "Your current scenario" : "The estimated-sales option in Combinations"} can
+            include otherwise eligible companies with no usable sales figure.
+            The ranking uses their peer estimates and shows the estimated share of each total.
+          </p>
           <Explanation label="Why are there two missing-sales counts?">
             {meta.missing_revenue} companies lack usable sales. Each row is
             counted at its first failed check.{" "}

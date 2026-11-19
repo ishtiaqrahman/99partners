@@ -115,12 +115,20 @@ export type Group = {
     revenue_cents: number;
     valuation_cents: number;
     multiple: number;
-    revenue_high_cents?: number;
+    revenue_high_cents?: number | null;
+    estimated_revenue?: boolean;
     flags: string[];
   }[];
 };
+export function estimatedSales(group: Group) {
+  return group.members.reduce(
+    (total, member) => total + (member.estimated_revenue ? member.revenue_cents : 0),
+    0,
+  );
+}
 export type Parameters = {
   multiples_hundredths?: MultipleOverrides;
+  include_estimated?: boolean;
   budget_cents: number;
   uniform: boolean;
   explicit_only: boolean;
@@ -131,6 +139,7 @@ export type GroupResult = {
   qualifying_count: number;
   best_tie_count: number;
   pool_size: number;
+  estimated_pool_size?: number;
   elapsed_ms: number;
   parameters: Parameters;
   comparison?: {

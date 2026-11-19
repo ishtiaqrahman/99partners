@@ -20,9 +20,15 @@ export function validOverrides(value: unknown): value is MultipleOverrides {
     );
 }
 
+export function canUseEstimatedSales(account: Account, settings: Parameters) {
+  // Eligibility uses the first failed check. This status already passed the
+  // customer-industry and product checks, and only needs an estimate for sales.
+  return !!settings.include_estimated && account.grouping_status === "Missing / invalid observed revenue";
+}
+
 export function scenarioScale(account: Account, settings: Parameters) {
   const override = settings.multiples_hundredths?.[account.product_role as ProductRole];
-  return override ?? (settings.uniform && account.grouping_status === "Eligible" ? 200 : account.multiple * 100);
+  return override ?? (settings.uniform && (account.grouping_status === "Eligible" || canUseEstimatedSales(account, settings)) ? 200 : account.multiple * 100);
 }
 
 // Round half a cent up, with the same rule as the DuckDB reference.

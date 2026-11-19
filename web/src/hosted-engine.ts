@@ -15,7 +15,7 @@ import {
   Preview,
 } from "./types";
 
-import { scenarioPrice, validOverrides } from "./scenario-pricing";
+import { canUseEstimatedSales, scenarioPrice, validOverrides } from "./scenario-pricing";
 
 export type Snapshot = {
   accounts: Account[];
@@ -82,13 +82,13 @@ export function optimizeHosted(
   const pool: Candidate[] = accounts
     .filter(
       (a) =>
-        a.grouping_status === "Eligible" &&
+        (a.grouping_status === "Eligible" || canUseEstimatedSales(a, parameters)) &&
         (!explicit_only || a.currency_basis === "Explicit") &&
         (!core_only || a.product_role === "Core workflow"),
     )
     .map((a) => ({
       account: a,
-      revenue: a.revenue_cents!,
+      revenue: a.revenue_cents ?? a.valuation_revenue_cents,
       cost: scenarioPrice(a, parameters).valuation_cents,
     }))
     .filter((a) => a.cost < cap)
@@ -164,7 +164,8 @@ export function optimizeHosted(
           id,
           vertical: a.vertical_label,
           tier: a.tier,
-          revenue_cents: a.revenue_cents!,
+          revenue_cents: a.revenue_cents ?? a.valuation_revenue_cents,
+          ...(canUseEstimatedSales(a, parameters) ? { estimated_revenue: true } : {}),
           revenue_high_cents: a.revenue_high_cents!,
           ...scenarioPrice(a, parameters),
           flags: a.evidence_tags,
@@ -174,6 +175,9 @@ export function optimizeHosted(
     qualifying_count: qualifyingCount,
     best_tie_count: bestTieCount,
     pool_size: pool.length,
+    ...(parameters.include_estimated ? {
+      estimated_pool_size: pool.filter(({ account }) => canUseEstimatedSales(account, parameters)).length,
+    } : {}),
     elapsed_ms: Math.round(performance.now() - start),
     parameters,
   };
@@ -203,7 +207,7 @@ export function compareScenario(snapshot: Snapshot, parameters: Parameters) {
       : winner?.ids.join() === original.ids.join()
         ? "The original winner remains optimal under these assumptions."
         : winner && winner.revenue_cents > original.revenue_cents
-          ? "Another trio delivers higher revenue under these assumptions."
+          ? "Another trio ranks higher on annual sales under these assumptions."
           : "Revenue ties are resolved by lower valuation, then ordered account IDs.";
   return {
     ...result,

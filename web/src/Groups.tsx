@@ -12,6 +12,7 @@ import {
   BASE_PARAMETERS,
   Group,
   GroupResult,
+  estimatedSales,
   money,
   Parameters,
   GroupScreen,
@@ -218,14 +219,19 @@ export function Groups({
                     ? "core software only"
                     : "all eligible software"}
                   {" · "}
+                  {result.parameters.include_estimated ? "estimated sales allowed" : "reported sales only"}
+                  {" · "}
                   {result.parameters.explicit_only
                     ? "stated currency required"
                     : "assumed currencies allowed"}
                 </p>
                 <p>
-                  {number(eligibleCount)} companies meet the basic eligibility
+                  {number(eligibleCount)} companies meet the original eligibility
                   rules. {number(result.pool_size)} entered this search after
                   applying the budget and settings.
+                  {result.parameters.include_estimated && (
+                    <> Of those, {number(result.estimated_pool_size ?? 0)} use estimated sales.</>
+                  )}
                 </p>
                 <Explanation label="Why does the search start with fewer companies?">
                   Each company must be valued below the budget on its own to fit
@@ -257,7 +263,7 @@ export function Groups({
                       scenarioBest.revenue_cents !==
                         originalBest.revenue_cents && (
                         <>
-                          The new first group sells{" "}
+                          The new first group has{" "}
                           {money(
                             Math.abs(
                               scenarioBest.revenue_cents -
@@ -268,7 +274,7 @@ export function Groups({
                           originalBest.revenue_cents
                             ? "more"
                             : "less"}{" "}
-                          per year.
+                          in annual sales for ranking.
                         </>
                       )}
                   </p>
@@ -286,7 +292,12 @@ export function Groups({
                           <tr>
                             <th scope="row">Annual revenue</th>
                             <td>{money(originalBest.revenue_cents)}</td>
-                            <td>{money(scenarioBest.revenue_cents)}</td>
+                            <td>
+                              {money(scenarioBest.revenue_cents)}
+                              {estimatedSales(scenarioBest) > 0 && (
+                                <div><small>{money(estimatedSales(scenarioBest))} estimated</small></div>
+                              )}
+                            </td>
                           </tr>
                           <tr>
                             <th scope="row">Estimated value</th>
@@ -442,6 +453,19 @@ export function Groups({
           <label className="check-option">
             <input
               type="checkbox"
+              checked={!!params.include_estimated}
+              onChange={(event) =>
+                setParams({ ...params, include_estimated: event.currentTarget.checked ? true : undefined })
+              }
+            />
+            <span>
+              Include companies with estimated sales
+              <small>Use estimates from similar companies when reported sales are missing or unusable</small>
+            </span>
+          </label>
+          <label className="check-option">
+            <input
+              type="checkbox"
               checked={params.explicit_only}
               onChange={(e) =>
                 setParams({ ...params, explicit_only: e.target.checked })
@@ -449,7 +473,7 @@ export function Groups({
             />
             <span>
               Require a stated currency
-              <small>Skip companies whose currency was assumed</small>
+              <small>Skip companies without an explicit revenue currency</small>
             </span>
           </label>
           <label className="check-option">
@@ -465,6 +489,9 @@ export function Groups({
               <small>Skip industry-specific add-ons</small>
             </span>
           </label>
+          {params.include_estimated && params.explicit_only && (
+            <p className="muted">Requiring a stated currency may exclude companies with estimated sales. The results show how many entered.</p>
+          )}
           <button
             className="button primary full"
             disabled={
@@ -561,6 +588,9 @@ export function Groups({
                       title={money(g.revenue_cents, true)}
                     >
                       {money(g.revenue_cents)}
+                      {estimatedSales(g) > 0 && (
+                        <div><small>{money(estimatedSales(g))} estimated</small></div>
+                      )}
                     </td>
                     <td
                       className="numeric"
@@ -627,6 +657,7 @@ function GroupCard({
   budget: number;
   open: (id: string) => void;
 }) {
+  const estimated = estimatedSales(group);
   const highCost = group.members.reduce(
     (sum, m) => sum + scaledPrice(m.revenue_high_cents ?? m.revenue_cents, Math.round(m.multiple * 100)),
     0,
@@ -643,10 +674,13 @@ function GroupCard({
       </div>
       <div className="group-totals">
         <div>
-          <span>Sales in one year</span>
+          <span>{estimated > 0 ? "Annual sales used for ranking" : "Sales in one year"}</span>
           <strong title={money(group.revenue_cents, true)}>
             {money(group.revenue_cents)}
           </strong>
+          {estimated > 0 && (
+            <small>{money(group.revenue_cents - estimated)} reported · {money(estimated)} estimated</small>
+          )}
         </div>
         <div>
           <span>Estimated price for all three</span>
@@ -700,6 +734,7 @@ function GroupCard({
           <p>
             Using the high end of each reported revenue range, these three
             companies would have an estimated value of {money(highCost, true)}.{" "}
+            {estimated > 0 && "Companies with estimated sales keep the same estimate. "}
             {highCost === budget
               ? "That reaches the limit, so this group no longer fits."
               : highCost > budget
@@ -727,7 +762,7 @@ function GroupCard({
               </span>
             </div>
             <div className="member-values">
-              <strong>{money(m.revenue_cents)} sales</strong>
+              <strong>{money(m.revenue_cents)} {m.estimated_revenue ? "estimated sales" : "sales"}</strong>
               <small>
                 {m.multiple}× → {money(m.valuation_cents)} price
               </small>

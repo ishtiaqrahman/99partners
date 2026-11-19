@@ -231,6 +231,19 @@ def test_exports_and_scenarios(tmp_path):
             "/api/scenarios", json={"budget_cents": 2500000000}
         ).json()
         assert changed["groups"][0]["valuation_cents"] < 2500000000
+        with_estimates = client.post(
+            "/api/scenarios", json={"include_estimated": True}
+        ).json()
+        assert with_estimates["estimated_pool_size"] == 74
+        best = with_estimates["groups"][0]
+        assert best["ids"] == ["0210", "0247", "0641"]
+        assert best["valuation_cents"] == 2_999_900_000
+        assert [
+            (member["id"], member["revenue_cents"])
+            for member in best["members"] if member.get("estimated_revenue")
+        ] == [("0247", 713_050_000)]
+        assert client.get("/api/accounts/0247").json()["revenue_cents"] is None
+        assert client.get("/api/groups").json()["groups"][0]["ids"] == ["0008", "0300", "0533"]
         repriced = client.post(
             "/api/scenarios", json={"multiples_hundredths": {"Vertical add-on": 250}}
         ).json()

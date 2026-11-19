@@ -13,7 +13,8 @@ def scenario_price(account, uniform=False, multiples_hundredths=None):
         scale = 200 if uniform else account["multiple"] * 100
     if scale == account["multiple"] * 100 and not uniform:
         return scale / 100, account["valuation_cents"]
-    return scale / 100, (account["revenue_cents"] * scale + 50) // 100
+    revenue = account["revenue_cents"] or account["valuation_revenue_cents"]
+    return scale / 100, (revenue * scale + 50) // 100
 
 
 def optimize(
@@ -23,6 +24,7 @@ def optimize(
     explicit_only=False,
     core_only=False,
     multiples_hundredths=None,
+    include_estimated=False,
 ):
     """Search the entire eligible pool and return at most ten deterministic trios.
 
@@ -32,8 +34,10 @@ def optimize(
     started = time.perf_counter()
     selected = []
     prices = {}
+    estimated_pool_size = 0
     for a in accounts:
-        if a["grouping_status"] != "Eligible":
+        estimated = a["grouping_status"] == "Missing / invalid observed revenue"
+        if a["grouping_status"] != "Eligible" and not (include_estimated and estimated):
             continue
         if explicit_only and a["currency_basis"] != "Explicit":
             continue
@@ -42,7 +46,9 @@ def optimize(
         multiple, value = scenario_price(a, uniform, multiples_hundredths)
         if value < budget_cents:
             prices[a["ref_id"]] = (multiple, value)
-            selected.append((a["ref_id"], a["vertical"], a["revenue_cents"], value))
+            revenue = a["valuation_revenue_cents"] if estimated else a["revenue_cents"]
+            selected.append((a["ref_id"], a["vertical"], revenue, value))
+            estimated_pool_size += int(estimated)
     with duckdb.connect() as db:
         db.execute("SET threads=2")
         db.execute("SET memory_limit='512MB'")
@@ -60,13 +66,16 @@ def optimize(
         members = []
         for ref in row[:3]:
             a = by_id[ref]
+            estimated = a["grouping_status"] == "Missing / invalid observed revenue"
+            revenue = a["valuation_revenue_cents"] if estimated else a["revenue_cents"]
             members.append(
                 dict(
                     id=ref,
                     vertical=a["vertical_label"],
                     tier=a["tier"],
-                    revenue_cents=a["revenue_cents"],
-                    revenue_high_cents=a.get("revenue_high_cents", a["revenue_cents"]),
+                    revenue_cents=revenue,
+                    revenue_high_cents=None if estimated else a.get("revenue_high_cents", revenue),
+                    **({"estimated_revenue": True} if estimated else {}),
                     multiple=prices[ref][0],
                     valuation_cents=prices[ref][1],
                     flags=a["evidence_tags"],
@@ -87,12 +96,14 @@ def optimize(
         qualifying_count=rows[0][5] if rows else 0,
         best_tie_count=rows[0][6] if rows else 0,
         pool_size=len(selected),
+        **({"estimated_pool_size": estimated_pool_size} if include_estimated else {}),
         elapsed_ms=round((time.perf_counter() - started) * 1000),
         parameters=dict(
             budget_cents=budget_cents,
             uniform=uniform,
             explicit_only=explicit_only,
             core_only=core_only,
+            **({"include_estimated": True} if include_estimated else {}),
             **({"multiples_hundredths": multiples_hundredths} if multiples_hundredths else {}),
         ),
     )

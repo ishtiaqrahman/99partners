@@ -38,6 +38,7 @@ class Scenario(BaseModel):
     uniform: bool = False
     explicit_only: bool = False
     core_only: bool = False
+    include_estimated: bool = False
     multiples_hundredths: dict[str, Annotated[int, Field(strict=True, ge=1, le=10000)]] = Field(default_factory=dict)
 
     @field_validator("multiples_hundredths")
@@ -92,14 +93,15 @@ def create_app(input_path=DEFAULT_INPUT, output_path=ROOT / "outputs"):
         return baseline
 
     @lru_cache(maxsize=32)
-    def run_scenario(budget_cents, uniform, explicit_only, core_only, multiple_items):
-        return optimize(accounts, budget_cents, uniform, explicit_only, core_only, dict(multiple_items))
+    def run_scenario(budget_cents, uniform, explicit_only, core_only, multiple_items, include_estimated):
+        return optimize(accounts, budget_cents, uniform, explicit_only, core_only, dict(multiple_items), include_estimated)
 
     @app.post("/api/scenarios")
     def scenario(body: Scenario):
         result = run_scenario(
             body.budget_cents, body.uniform, body.explicit_only, body.core_only,
             tuple(sorted(body.multiples_hundredths.items())),
+            body.include_estimated,
         )
         comparison = None
         if baseline["groups"]:
@@ -122,7 +124,7 @@ def create_app(input_path=DEFAULT_INPUT, output_path=ROOT / "outputs"):
             elif winner and winner["ids"] == first["ids"]:
                 reason = "The original winner remains optimal under these assumptions."
             elif winner and winner["revenue_cents"] > first["revenue_cents"]:
-                reason = "Another trio delivers higher revenue under these assumptions."
+                reason = "Another trio ranks higher on annual sales under these assumptions."
             else:
                 reason = "Revenue ties are resolved by lower valuation, then ordered account IDs."
             comparison = dict(
