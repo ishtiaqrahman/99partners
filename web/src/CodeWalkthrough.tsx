@@ -484,23 +484,25 @@ function WorkedExample({
     default:
       return (
         <>
-          <h3>What should happen when we run the test?</h3>
-          <p>Imagine three companies cost <strong>$1.00, $1.00 and $0.99</strong>. That adds up to <strong>$2.99</strong>. We give the program three different situations and check that it gives the answer we worked out by hand.</p>
+          <h3>What the automated test checks</h3>
+          <p><strong>The test supplies the budgets and checks the answers automatically.</strong> This page shows how the test works. For the example, the test creates three pretend companies priced at <strong>$1.00, $1.00 and $0.99</strong>. Together they cost <strong>$2.99</strong>.</p>
           <dl className="validation-cases">
             <div>
-              <dt>Try a $3.00 budget</dt>
+              <dt>The test sets a $3.00 budget</dt>
               <dd><strong>Keep the group.</strong> Its $2.99 total is one cent below the budget.</dd>
             </div>
             <div>
-              <dt>Try a $2.99 budget</dt>
+              <dt>The test sets a $2.99 budget</dt>
               <dd><strong>Return no group.</strong> The total hits the budget exactly. The rule requires a total below it.</dd>
             </div>
             <div>
-              <dt>Try with only two companies</dt>
+              <dt>The test gives the program only two companies</dt>
               <dd><strong>Return no group.</strong> Even with room in the budget, a group needs exactly three companies.</dd>
             </div>
           </dl>
-          <p>The code uses cents. <code>300</code> means $3.00 and <code>299</code> means $2.99. Run <code>make test</code> from the project folder to check these rules.</p>
+          <p>The code uses cents. <code>300</code> means $3.00 and <code>299</code> means $2.99.</p>
+          <h3>Where the test runs</h3>
+          <p>The test lives in <code>tests/test_analysis.py</code> and runs when someone runs <code>make test</code> from the project folder. Visiting this walkthrough displays the example and its code. If you’re reviewing the results, you can read the example and move on.</p>
           <div className="validation-downloads">
             <h3>Download the results</h3>
             <p>These four spreadsheets let someone review the cleaned data and follow the decisions from individual companies to the ranked groups. To create the files locally, run <code>make analyze</code> and open <code>outputs/current/</code>.</p>

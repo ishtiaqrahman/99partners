@@ -273,7 +273,7 @@ export const lessons = [
     short: "Check and save",
     title: "Check that the buying rules work",
     purpose:
-      "Before sharing the results, we check two rules with an example we can add up ourselves. A group needs exactly three companies, and their total price must be below the budget.",
+      "An automated test checks two rules. A group needs exactly three companies, and their total price must be below the budget.",
     parts: [
       {
         title: "Compare the program’s answer with the expected answer",
