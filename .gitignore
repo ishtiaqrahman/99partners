@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+web/dist/
+data/
+outputs/
+*.zip
+*.log
+*.egg-info/
+*.tsbuildinfo
+cloudflare/public/
+.wrangler/
+cloudflare/bundle/
