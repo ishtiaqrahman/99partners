@@ -157,11 +157,11 @@ export const lessons = [
       {
         title: "Find companies we can compare",
         explanation:
-          "Start with companies that reported sales, serve the same customer industry and sell the same type of product. Try for at least five. If there are too few, widen to the same product type, then to the whole file.",
+          "We chose five as the minimum for a comparison group. Count companies with usable reported sales that serve the same industry and sell the same type of product. With five or more matches, use all of them. With zero to four, try the same product type across all industries. If that still gives fewer than five, use every company in the file with usable reported sales.",
         source: excerpt(
           "analysis.py",
           'if a["vertical"]:',
-          'basis = "Buyer + role median"',
+          'basis = "Dataset median"',
         ),
       },
       {

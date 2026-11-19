@@ -270,6 +270,11 @@ function WorkedExample({
                 {missing.revenue || "blank"}.” Its reported sales field stays
                 empty.
               </p>
+              {missing.valuation_basis === "Buyer + role median" && (
+                <p><strong>{number(missing.peer_count)} companies matched both the customer industry and product type.</strong>{" "}
+                  That meets the minimum of five, so the calculation uses all {number(missing.peer_count)}.
+                  Four matches would have widened the search to other industries.</p>
+              )}
               {data.peerSales.length > 0 && (
                 <>
                   <p>
