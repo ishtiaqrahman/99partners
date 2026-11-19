@@ -674,6 +674,11 @@ export default function CodeWalkthrough({
             <div className="walk-explain">
               <h3>{part.title}</h3>
               <p>{part.explanation}</p>
+              {"examples" in part && part.examples && (
+                <ul className="walk-code-examples">
+                  {part.examples.map((example) => <li key={example}>{example}</li>)}
+                </ul>
+              )}
             </div>
             <figure className="walk-code">
               <figcaption>

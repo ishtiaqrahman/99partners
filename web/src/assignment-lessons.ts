@@ -215,15 +215,24 @@ export const lessons = [
       "Keep a group only if it serves three different customer industries and its three prices add up to less than the budget.",
     parts: [
       {
-        title: "Fill three seats with three different industries",
+        title: "Check who each company sells to",
         explanation:
-          "The letters a, b and c stand for the three companies. JOIN brings their rows together. Each <> asks whether two industries differ. Reading the IDs in increasing order counts the same three companies just once.",
+          "Think of a, b and c as the first, second and third company. JOIN puts the companies together so we can check them. The symbol <> means ‘is different from.’ In this code, vertical means type of customer.",
+        examples: [
+          "Say company a sells to dental practices and company b sells to bingo halls. If company c sells to food processors, the group passes this check.",
+          "If company c also sells to dental practices, the group fails. Companies a and c sell to the same type of customer.",
+          "The ID checks put the companies in order, such as 0001, 0002, 0003. That way, rearranging the same three companies cannot count as another group.",
+        ],
         source: excerpt("groups.sql", "FROM accounts a", "JOIN accounts c"),
       },
       {
-        title: "Add the prices and check the limit",
+        title: "Add the three prices and compare them with the budget",
         explanation:
-          "The question mark holds the chosen budget. The < sign means “less than.” Even one cent below the limit passes this check. Exactly at the limit fails.",
+          "Valuation means estimated purchase price. The code adds the three prices and compares the total with the budget supplied in place of ?. The < sign means ‘less than.’",
+        examples: [
+          "$8M + $9M + $12M = $29M. This passes with a $30M budget.",
+          "$8M + $9M + $13M = $30M. This fails because exactly $30M reaches the limit.",
+        ],
         source: excerpt("groups.sql", "WHERE a.valuation"),
       },
     ],
