@@ -15,6 +15,7 @@ import {
   estimatedSales,
   balanceLabels,
   groupBalance,
+  largestPurchasePrice,
   purchaseShare,
   tiesOnRanking,
   money,
@@ -22,7 +23,7 @@ import {
   GroupScreen,
 } from "./types";
 import { groupLink, readGroupLocation } from "./group-location";
-import { Badge, ErrorBox, Explanation, number, productLabels } from "./common";
+import { Badge, ErrorBox, Explanation, number, productLabels, SortIcon } from "./common";
 import { multipleKey, PRODUCT_ROLES, scaledPrice, validOverrides } from "./scenario-pricing";
 
 /** Scenarios are explicit requests; pending controls never relabel old results. */
@@ -49,6 +50,7 @@ export function Groups({
   const [scenario, setScenario] = useState<GroupResult | null>(null);
   const [params, setParams] = useState<Parameters>(BASE_PARAMETERS);
   const [lookup, setLookup] = useState("");
+  const [shareOrder, setShareOrder] = useState<"ascending" | "descending" | "none">("none");
   const [error, setError] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(
     () => window.innerWidth > 760,
@@ -134,6 +136,16 @@ export function Groups({
   const appliedMultiples = result?.parameters.multiples_hundredths ?? {};
   const changedRoles = PRODUCT_ROLES.filter((role) => appliedMultiples[role] !== undefined);
   const balanceMethod = result?.parameters.balance_method ?? "largest_share";
+  const sortByShare = balanceMethod === "largest_share" && shareOrder !== "none";
+  const displayedGroups = sortByShare ? [...(result?.groups ?? [])].sort((a, b) => {
+    if (!a.valuation_cents || !b.valuation_cents)
+      return Number(!a.valuation_cents) - Number(!b.valuation_cents) || a.rank - b.rank;
+    // Compare the actual fractions using cents rather than rounded percentages.
+    const left = BigInt(largestPurchasePrice(a)) * BigInt(b.valuation_cents);
+    const right = BigInt(largestPurchasePrice(b)) * BigInt(a.valuation_cents);
+    const order = left < right ? -1 : left > right ? 1 : 0;
+    return (shareOrder === "ascending" ? order : -order) || a.rank - b.rank;
+  }) : result?.groups ?? [];
   const tied = !!result && !!topGroup && result.groups.length > 1 &&
     result.groups.every((group) => tiesOnRanking(group, topGroup, balanceMethod));
   return (
@@ -547,6 +559,20 @@ export function Groups({
               ? "All groups shown tie on sales, total price, and the selected balance measure. Company IDs determine their order."
               : "Highest sales first, then lowest total price, then purchase balance. Company IDs settle any remaining ties."}
           </p>
+          {balanceMethod === "largest_share" && (
+            <div className="rankings-sort-status">
+              <span role="status">
+                {sortByShare
+                  ? "Showing the listed groups by largest share, " + (shareOrder === "ascending" ? "low to high." : "high to low.")
+                  : "Select the Largest purchase share column to sort the groups shown."}
+              </span>
+              {sortByShare && (
+                <button className="text-button" onClick={() => setShareOrder("none")}>
+                  Show by rank
+                </button>
+              )}
+            </div>
+          )}
           <p className="mobile-table-tools">
             Swipe across for the full comparison. Tap a company ID to see its
             evidence.
@@ -565,13 +591,20 @@ export function Groups({
                   <th>Customer industries</th>
                   <th className="numeric">Annual revenue</th>
                   <th className="numeric">Estimated value</th>
-                  <th className="numeric">{balanceLabels[balanceMethod]}</th>
+                  {balanceMethod === "largest_share" ? (
+                    <th className="numeric" scope="col" aria-sort={shareOrder}>
+                      <button onClick={() => setShareOrder(shareOrder === "ascending" ? "descending" : "ascending")}>
+                        Largest purchase share
+                        <SortIcon active={sortByShare} desc={shareOrder === "descending"} />
+                      </button>
+                    </th>
+                  ) : <th className="numeric" scope="col">{balanceLabels[balanceMethod]}</th>}
                   <th className="numeric">Budget remaining</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {result.groups.map((g) => (
+                {displayedGroups.map((g) => (
                   <tr
                     key={g.rank}
                     className={selectedRank === g.rank ? "rank-selected" : ""}

@@ -138,11 +138,15 @@ export function purchaseShare(price: number, total: number) {
   }).format(price / total) : "—";
 }
 
+export function largestPurchasePrice(group: Group) {
+  return Math.max(...group.members.map((member) => member.valuation_cents));
+}
+
 export function groupBalance(group: Group, method: BalanceMethod = "largest_share") {
   if (!group.valuation_cents) return "—";
-  const prices = group.members.map((member) => member.valuation_cents);
   if (method === "largest_share")
-    return purchaseShare(Math.max(...prices), group.valuation_cents);
+    return purchaseShare(largestPurchasePrice(group), group.valuation_cents);
+  const prices = group.members.map((member) => member.valuation_cents);
   const concentration = prices.reduce((sum, price) => sum + (price / group.valuation_cents) ** 2, 0);
   const score = Math.min(100, Math.max(0, 150 * (1 - concentration)));
   return score.toLocaleString("en-US", {maximumFractionDigits: 2}) + " / 100";
@@ -157,8 +161,7 @@ export function tiesOnRanking(a: Group, b: Group, method: BalanceMethod = "large
     );
     return squaredPrices(a) === squaredPrices(b);
   }
-  const largest = (group: Group) => Math.max(...group.members.map((member) => member.valuation_cents));
-  return largest(a) === largest(b);
+  return largestPurchasePrice(a) === largestPurchasePrice(b);
 }
 
 export type Parameters = {

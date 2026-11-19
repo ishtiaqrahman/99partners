@@ -77,6 +77,22 @@ with sync_playwright() as p:
     page.screenshot(path="/tmp/99-groups.png")
     expect(page.get_by_role("columnheader", name="Largest purchase share")).to_be_visible()
     expect(page.locator(".rankings tbody tr").nth(1)).to_contain_text("0149")
+    share_header = page.get_by_role("columnheader", name="Largest purchase share")
+    share_button = share_header.get_by_role("button")
+    ranked_rows = page.locator(".rankings tbody tr")
+    original_ranks = ranked_rows.locator(".rank-number").all_text_contents()
+    share_button.click()
+    expect(share_header).to_have_attribute("aria-sort", "ascending")
+    low_to_high = [float(row[5].rstrip("%")) for row in
+                   ranked_rows.evaluate_all("(rows) => rows.map(row => Array.from(row.cells, cell => cell.innerText))")]
+    assert low_to_high == sorted(low_to_high)
+    share_button.click()
+    expect(share_header).to_have_attribute("aria-sort", "descending")
+    high_to_low = [float(row[5].rstrip("%")) for row in
+                   ranked_rows.evaluate_all("(rows) => rows.map(row => Array.from(row.cells, cell => cell.innerText))")]
+    assert high_to_low == sorted(low_to_high, reverse=True)
+    page.get_by_role("button", name="Show by rank").click()
+    expect(ranked_rows.locator(".rank-number")).to_have_text(original_ranks)
     balance = page.get_by_label("Purchase balance tie-breaker")
     balance.select_option("all_shares")
     page.get_by_role("button", name="Calculate with these settings", exact=True).click()

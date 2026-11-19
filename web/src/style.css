@@ -2620,3 +2620,13 @@ footer {padding-right:76px;padding-bottom:54px;}
 .balance-control small,.group-balance small {color: var(--muted);}
 .group-balance {padding: 9px 12px; background: #f4f6f1; border-radius: 6px; margin: 10px 0;}
 .group-balance small {display: block;}
+
+.rankings-sort-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 12px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
