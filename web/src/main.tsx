@@ -17,6 +17,7 @@ import { Assignment } from "./Assignment";
 import { Chat } from "./Chat";
 import { AccountDrawer } from "./AccountDrawer";
 import { Groups } from "./Groups";
+import { readGroupLocation } from "./group-location";
 import { Method } from "./Method";
 import "@fontsource/dm-sans/latin-400.css";
 import "@fontsource/dm-sans/latin-500.css";
@@ -58,10 +59,11 @@ function App() {
       // Older chat URLs still open the dock. Chat evidence links retain the current page.
       if (item) setView(item.id);
       else if (!showChat) setView("assignment");
-      if (route === "groups") {
+      if (route === "groups" || (route === "method" && params.has("budget"))) {
         const copy = new URLSearchParams(params);
         copy.delete("account");
         copy.delete("chat");
+        copy.delete("about");
         setGroupRoute(copy.toString());
       }
       if (route === "code") setCodeStep(params.get("step") || "rows");
@@ -82,15 +84,18 @@ function App() {
       " · NinetyNine";
     window.scrollTo({ top: 0 });
   }, [view]);
-  function navigate(v: View, id: string | null = null) {
-    location.hash = new URLSearchParams({
-      ...(v === "groups"
+  function pageLink(v: View, id: string | null = null) {
+    return "#" + new URLSearchParams({
+      ...((v === "groups" || v === "method")
         ? Object.fromEntries(new URLSearchParams(groupRoute))
         : {}),
       view: v,
       ...(v === "code" ? { step: codeStep } : {}),
       ...(id ? { account: id } : {}),
     }).toString();
+  }
+  function navigate(v: View, id: string | null = null) {
+    location.hash = pageLink(v, id);
   }
   function updateTags(id: string, next: string[]) {
     const updated = { ...tags, [id]: next };
@@ -115,7 +120,7 @@ function App() {
           {navigation.map((item) => (
             <a
               key={item.id}
-              href={"#view=" + item.id}
+              href={item.id === "groups" || item.id === "method" ? pageLink(item.id) : "#view=" + item.id}
               className={view === item.id ? "nav-item active" : "nav-item"}
               aria-current={view === item.id ? "page" : undefined}
             >
@@ -165,7 +170,13 @@ function App() {
                   open={(id) => navigate(view, id)}
                 />
               )}
-              {view === "method" && <Method meta={meta} />}
+              {view === "method" && (
+                <Method
+                  meta={meta}
+                  scenario={readGroupLocation(new URLSearchParams(groupRoute)).settings}
+                  combinationsHref={pageLink("groups")}
+                />
+              )}
               {view === "assignment" && <Assignment meta={meta} />}
               {view === "code" && (
                 <React.Suspense

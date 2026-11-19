@@ -8,7 +8,8 @@ import {
   GitBranch,
   Layers,
 } from "lucide-react";
-import { Meta, money } from "./types";
+import { Meta, money, type Parameters } from "./types";
+import { scaledPrice, type ProductRole } from "./scenario-pricing";
 import { Badge, Explanation, productLabels } from "./common";
 
 const STAGES = [
@@ -68,7 +69,15 @@ const STAGES = [
       "The company valuations CSV includes Account 0004’s estimated value. The four downloads contain the original analysis.",
   },
 ];
-export function Method({ meta }: { meta: Meta }) {
+export function Method({
+  meta,
+  scenario,
+  combinationsHref,
+}: {
+  meta: Meta;
+  scenario: Parameters | null;
+  combinationsHref: string;
+}) {
   const [stage, setStage] = useState(0);
   const hosted = meta.runtime === "Cloudflare";
   const stages = STAGES;
@@ -90,6 +99,22 @@ export function Method({ meta }: { meta: Meta }) {
     " = " +
     money(exampleRevenue * meta.multiples["Core workflow"]) +
     " estimated business value. Where revenue is missing, the estimate uses the median from comparable companies.";
+
+  const overrides = scenario?.multiples_hundredths ?? {};
+  const showScenario = scenario?.uniform || Object.keys(overrides).length > 0;
+  const appliedMultiple = (role: string) => {
+    const override = overrides[role as ProductRole];
+    if (override !== undefined) return override / 100;
+    if (scenario?.uniform && (role === "Core workflow" || role === "Vertical add-on"))
+      return 2;
+    return meta.multiples[role];
+  };
+  if (showScenario) {
+    const rate = appliedMultiple("Core workflow");
+    examples[3] +=
+      " At the scenario’s " + rate + "× rate, Account 0004 is valued at " +
+      money(scaledPrice(exampleRevenue, Math.round(rate * 100))) + ".";
+  }
 
   const totalExcluded = meta.total - (meta.eligibility.Eligible || 0);
   return (
@@ -230,19 +255,47 @@ export function Method({ meta }: { meta: Meta }) {
           <div className="section-title">
             <h2>How estimated values are calculated</h2>
           </div>
-          <div className="multiple-list">
-            {Object.entries(meta.multiples).map(([role, m]) => (
-              <div key={role}>
-                <span>{productLabels[role] ?? role}</span>
-                <strong>{m}× revenue</strong>
-              </div>
-            ))}
-          </div>
+          {showScenario ? (
+            <table className="comparison-table method-multiples">
+              <thead>
+                <tr>
+                  <th scope="col">Product category</th>
+                  <th scope="col">Original</th>
+                  <th scope="col">Scenario</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(meta.multiples).map(([role, original]) => (
+                  <tr key={role}>
+                    <th scope="row">{productLabels[role] ?? role}</th>
+                    <td>{original}×</td>
+                    <td><strong>{appliedMultiple(role)}×</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="multiple-list">
+              {Object.entries(meta.multiples).map(([role, original]) => (
+                <div key={role}>
+                  <span>{productLabels[role] ?? role}</span>
+                  <strong>{original}× revenue</strong>
+                </div>
+              ))}
+            </div>
+          )}
+          {showScenario && (
+            <p className="muted">
+              {scenario?.uniform
+                ? "The 2× setting covers eligible software. Your category overrides apply to every company in that category."
+                : "The Scenario column shows the rates you applied in Combinations."}
+            </p>
+          )}
           <p className="muted">
-            These multiples give rough estimates for screening. The analysis
-            uses a higher multiple for software that supports a customer’s main
-            operations.
+            These multiples give rough estimates for screening. The original
+            analysis gives core operations software a higher multiple.
           </p>
+          <a href={combinationsHref}>Change multiples in Combinations</a>
         </section>
         <section className="card">
           <div className="section-title">

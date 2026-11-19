@@ -2534,3 +2534,15 @@ table.comparison-table {
   gap: 4px;
   font-size: 13px;
 }
+
+.method-multiples {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.method-multiples th:first-child {
+  text-align: left;
+  white-space: normal;
+}
+.method-multiples td {
+  white-space: nowrap;
+}
