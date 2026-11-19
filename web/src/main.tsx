@@ -2,11 +2,12 @@
 import React, { useEffect, useState } from "react";
 import {
   ChevronRight,
-  ClipboardList,
+  PanelsTopLeft,
+  Database,
   Code2,
-  GitBranch,
+  Workflow,
   Layers,
-  LayoutGrid,
+  Building2,
 } from "lucide-react";
 import { api, Meta, GroupScreen } from "./types";
 import { number, readLocal, saveLocal, ErrorBox } from "./common";
@@ -27,10 +28,10 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "./style.css";
 const CodeWalkthrough = React.lazy(() => import("./CodeWalkthrough"));
 const navigation = [
-  { id: "assignment", label: "Assignment", icon: ClipboardList },
-  { id: "accounts", label: "Companies", icon: LayoutGrid },
+  { id: "assignment", label: "Overview", icon: PanelsTopLeft },
+  { id: "accounts", label: "Companies", icon: Building2 },
   { id: "groups", label: "Combinations", icon: Layers },
-  { id: "method", label: "How it works", icon: GitBranch },
+  { id: "method", label: "Methodology", icon: Workflow },
   { id: "code", label: "Code walkthrough", icon: Code2 },
 ] as const;
 type View = (typeof navigation)[number]["id"];
@@ -80,7 +81,7 @@ function App() {
   }, [meta]);
   useEffect(() => {
     document.title =
-      (navigation.find((n) => n.id === view)?.label || "Assignment") +
+      (navigation.find((n) => n.id === view)?.label || "Overview") +
       " · NinetyNine";
     window.scrollTo({ top: 0 });
   }, [view]);
@@ -116,6 +117,13 @@ function App() {
           </span>
         </a>
         <div className="workspace-label">INVESTMENT WORKSPACE</div>
+        <label className="phone-navigation">
+          <span>NinetyNine</span>
+          <select aria-label="Workspace page" value={view}
+            onChange={(event) => navigate(event.target.value as View)}>
+            {navigation.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+        </label>
         <nav aria-label="Main navigation">
           {navigation.map((item) => (
             <a
@@ -140,9 +148,7 @@ function App() {
             {navigation.find(({ id }) => id === view)?.label}
           </span>
           <span className="top-status">
-            <span className="status-dot" />{" "}
-            {meta ? meta.input_name : "Loading dataset"}
-            <span className="top-run">{meta?.run_id.slice(0, 7)}</span>
+            <Database size={15} aria-hidden="true" /> Company dataset · {meta ? number(meta.total) + " companies" : "Loading…"}
           </span>
         </header>
         <main>

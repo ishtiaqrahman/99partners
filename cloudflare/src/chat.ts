@@ -666,7 +666,7 @@ Also accepts ids (4-digit strings), keywords (a single exact phrase searched in 
   );
 
   const sources: Source[] = [
-    { label: "Assignment", href: "#view=assignment" },
+    { label: "Overview", href: "#view=assignment" },
     { label: "Method and original outputs", href: "#view=method" },
   ];
   if (screen?.group) sources.unshift(resultSource);

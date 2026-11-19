@@ -400,7 +400,7 @@ function WorkedExample({
         );
       return (
         <>
-          <h3>Add up the first group in the submitted file</h3>
+          <h3>Add up the first group in the original results</h3>
           <div className="walk-table-wrap">
             <table>
               <caption className="sr-only">
@@ -561,7 +561,7 @@ export default function CodeWalkthrough({
   return (
     <div className="walkthrough">
       <header className="walk-header">
-        <h1>Assignment code, step by step</h1>
+        <h1>How the analysis runs</h1>
         <p>
           Follow two decisions from the spreadsheet to the answer. Who gets a
           call first? Which three companies bring in the most sales within the
@@ -581,7 +581,7 @@ export default function CodeWalkthrough({
               >
                 <Icon size={22} aria-hidden="true" />
                 <span>
-                  <small>Exercise {i + 1}</small>
+                  <small>{i === 0 ? "Outreach" : "Combinations"}</small>
                   <strong>{name}</strong>
                 </span>
               </a>
@@ -623,7 +623,7 @@ export default function CodeWalkthrough({
       <article className="walk-lesson">
         <header>
           <p className="walk-progress">
-            Exercise {lesson.chapter + 1} · Step {index + 1} of {lessons.length}
+            Step {index + 1} of {lessons.length}
           </p>
           <h2 ref={heading} tabIndex={-1}>
             {lesson.title}
@@ -678,7 +678,7 @@ export default function CodeWalkthrough({
         {index > 0 && (
           <a href={linkTo(lessons[index - 1].id)}>
             <ArrowLeft size={16} />
-            {lessons[index - 1].short}
+            Previous · {lessons[index - 1].short}
           </a>
         )}
         {index + 1 < lessons.length ? (

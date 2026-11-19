@@ -139,7 +139,9 @@ export function Chat({
         }}
       >
         <div className="chat-panel-heading">
-          <h2 id="workbench-chat-title">Ask about the companies and results</h2>
+          <div><h2 id="workbench-chat-title">Ask the workbench</h2>
+            <small>{screen.account ? "Company " + screen.account : screen.page === "groups" && screen.group ? "Viewing combination " + screen.group.rank : ({ assignment: "Overview", method: "Methodology", accounts: "Company directory", code: "Code walkthrough", groups: "Combinations" } as Record<string, string>)[screen.page]}</small>
+          </div>
           <div className="chat-panel-actions">
             {hosted && (
               <button
@@ -195,7 +197,7 @@ export function Chat({
                             (screen.account || "0004") +
                             " in three sentences.",
                     },
-                    ...prompts,
+                    prompts[screen.page === "groups" ? 1 : screen.page === "method" || screen.page === "code" ? 2 : 0],
                   ].map(({ label, question, icon: Icon }) => (
                     <button
                       key={label}

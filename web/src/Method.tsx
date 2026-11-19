@@ -121,12 +121,176 @@ export function Method({
     <>
       <div className="page-heading">
         <div>
-          <h1>How we made the decisions</h1>
+          <h1>Methodology</h1>
           <p>
-            Follow a company from the supplied data to its outreach tier,
-            estimated value, and eligibility for combinations.
+            Explore the rules behind outreach priority, estimated prices and three-company combinations.
           </p>
         </div>
+      </div>
+      <nav className="method-jumps" aria-label="Methodology sections">
+        {[["outreach","Outreach criteria"],["multiples","Valuation multiples"],["eligibility","Group rules"]].map(([id,label]) => (
+          <button key={id} className="button secondary" onClick={() => {
+            const heading = document.getElementById("method-" + id);
+            heading?.focus({preventScroll:true});
+            heading?.scrollIntoView({block:"center"});
+          }}>{label}</button>
+        ))}
+      </nav>
+      <div className="method-grid">
+        <section className="card">
+          <div className="section-title">
+            <h2 tabIndex={-1} id="method-outreach">Who qualifies for priority outreach?</h2>
+            <Badge tone="green">Tier A</Badge>
+          </div>
+          <p>
+            We use all three checks to decide who
+            gets the first call.
+          </p>
+          <ol className="gates">
+            {[
+              "Does the software run a main job for one industry? That makes it a closer product fit.",
+              "Is the business independently owned? Borrowing money from a bank can leave that ownership intact.",
+              "Is there evidence it earns money? We accept a positive earnings measure or the company’s statement that it is profitable.",
+            ].map((g) => (
+              <li key={g}>
+                <Check size={16} />
+                {g}
+              </li>
+            ))}
+          </ol>
+          <p className="muted">
+            Each Tier B company lists which checks it missed. Positive cash flow
+            alone leaves the earnings check unresolved. Founder age has no role
+            in the decision.
+          </p>
+        </section>
+        <section className="card">
+          <div className="section-title">
+            <h2 tabIndex={-1} id="method-multiples">How estimated values are calculated</h2>
+          </div>
+          {showScenario ? (
+            <table className="comparison-table method-multiples">
+              <thead>
+                <tr>
+                  <th scope="col">Product category</th>
+                  <th scope="col">Original</th>
+                  <th scope="col">Scenario</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(meta.multiples).map(([role, original]) => (
+                  <tr key={role}>
+                    <th scope="row">{productLabels[role] ?? role}</th>
+                    <td>{original}×</td>
+                    <td className={appliedMultiple(role) !== original ? "changed-multiple" : undefined}><strong>{appliedMultiple(role)}×</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="multiple-list">
+              {Object.entries(meta.multiples).map(([role, original]) => (
+                <div key={role}>
+                  <span>{productLabels[role] ?? role}</span>
+                  <strong>{original}× revenue</strong>
+                </div>
+              ))}
+            </div>
+          )}
+          {showScenario && (
+            <p className="muted">
+              {scenario?.uniform
+                ? "The 2× setting covers eligible software. Your category overrides apply to every company in that category."
+                : "The Scenario column shows the rates you applied in Combinations."}
+            </p>
+          )}
+          <p className="muted">
+            These multiples give rough estimates for screening. The original
+            analysis gives core operations software a higher multiple.
+          </p>
+          <a href={combinationsHref}>Change multiples in Combinations</a>
+        </section>
+        <section className="card">
+          <div className="section-title">
+            <h2 tabIndex={-1} id="method-eligibility">Which companies can enter combinations?</h2>
+            <span>{totalExcluded} excluded</span>
+          </div>
+          <p>Share of all {meta.total.toLocaleString()} companies. Each company counts once.</p>
+          <div className="waterfall">
+            {Object.entries(meta.eligibility).map(([reason, n]) => (
+              <div key={reason}>
+                <div>
+                  <span>
+                    {{
+                      Eligible: "Meets the combination rules",
+                      "Unresolved / horizontal customer":
+                        "No specific customer industry",
+                      "Missing / invalid observed revenue":
+                        "Missing or unusable reported revenue",
+                      "Services / unresolved product":
+                        "Services or unclear product",
+                    }[reason] ?? reason}
+                  </span>
+                  <strong>{n}</strong>
+                </div>
+                <div className="waterfall-track">
+                  <span
+                    style={{
+                      width: (n / meta.total) * 100 + "%",
+                      background: reason === "Eligible" ? "#326a55" : "#b8c3b8",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p>
+            <b>{meta.search_pool} companies enter the original search.</b> Of
+            the {meta.eligibility.Eligible || 0} that pass the basic checks,{" "}
+            {(meta.eligibility.Eligible || 0) - meta.search_pool} already cost
+            the whole budget or more on their own.
+          </p>
+          <p>
+            {scenario?.include_estimated ? "Your current scenario" : "The estimated-sales option in Combinations"} can
+            include otherwise eligible companies with no usable sales figure.
+            The ranking uses their peer estimates and shows the estimated share of each total.
+          </p>
+          <Explanation label="Why are there two missing-sales counts?">
+            {meta.missing_revenue} companies lack usable sales. Each row is
+            counted at its first failed check.{" "}
+            {meta.missing_by_exclusion["Unresolved / horizontal customer"] || 0}{" "}
+            failed the customer check and{" "}
+            {meta.missing_by_exclusion["Services / unresolved product"] || 0}{" "}
+            failed the product check first. The remaining{" "}
+            {meta.missing_by_exclusion["Missing / invalid observed revenue"] ||
+              0}{" "}
+            reached the sales check.
+          </Explanation>
+          <p className="muted">
+            Each company appears once. Companies from either tier can qualify
+            when they sell industry-specific software and report revenue.
+          </p>
+        </section>
+        <section className="card">
+          <div className="section-title">
+            <h2>Exchange rates used in the analysis</h2>
+            <span>From the brief · one euro counts as ${meta.fx.EUR} US</span>
+          </div>
+          <div className="fx-grid">
+            {Object.entries(meta.fx).map(([currency, rate]) => (
+              <div key={currency}>
+                <span>{currency}</span>
+                <strong>{rate}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="muted">
+            {meta.assumed_currency} companies use an assumed USD currency.{" "}
+            {meta.missing_revenue} have missing revenue and use peer estimates
+            for valuation. {meta.unparsed_revenue} unparsed or invalid revenue
+            fields.
+          </p>
+        </section>
       </div>
       <section className="architecture card">
         <div className="section-title">
@@ -223,161 +387,7 @@ export function Method({
           </p>
         </Explanation>
       </section>
-      <div className="method-grid">
-        <section className="card">
-          <div className="section-title">
-            <h2>Who qualifies for priority outreach?</h2>
-            <Badge tone="green">Tier A</Badge>
-          </div>
-          <p>
-            The assignment let us choose. We use all three checks to decide who
-            gets the first call.
-          </p>
-          <ol className="gates">
-            {[
-              "Does the software run a main job for one industry? That makes it a closer product fit.",
-              "Is the business independently owned? Borrowing money from a bank can leave that ownership intact.",
-              "Is there evidence it earns money? We accept a positive earnings measure or the company’s statement that it is profitable.",
-            ].map((g) => (
-              <li key={g}>
-                <Check size={16} />
-                {g}
-              </li>
-            ))}
-          </ol>
-          <p className="muted">
-            Each Tier B company lists which checks it missed. Positive cash flow
-            alone leaves the earnings check unresolved. Founder age has no role
-            in the decision.
-          </p>
-        </section>
-        <section className="card">
-          <div className="section-title">
-            <h2>How estimated values are calculated</h2>
-          </div>
-          {showScenario ? (
-            <table className="comparison-table method-multiples">
-              <thead>
-                <tr>
-                  <th scope="col">Product category</th>
-                  <th scope="col">Original</th>
-                  <th scope="col">Scenario</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(meta.multiples).map(([role, original]) => (
-                  <tr key={role}>
-                    <th scope="row">{productLabels[role] ?? role}</th>
-                    <td>{original}×</td>
-                    <td><strong>{appliedMultiple(role)}×</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="multiple-list">
-              {Object.entries(meta.multiples).map(([role, original]) => (
-                <div key={role}>
-                  <span>{productLabels[role] ?? role}</span>
-                  <strong>{original}× revenue</strong>
-                </div>
-              ))}
-            </div>
-          )}
-          {showScenario && (
-            <p className="muted">
-              {scenario?.uniform
-                ? "The 2× setting covers eligible software. Your category overrides apply to every company in that category."
-                : "The Scenario column shows the rates you applied in Combinations."}
-            </p>
-          )}
-          <p className="muted">
-            These multiples give rough estimates for screening. The original
-            analysis gives core operations software a higher multiple.
-          </p>
-          <a href={combinationsHref}>Change multiples in Combinations</a>
-        </section>
-        <section className="card">
-          <div className="section-title">
-            <h2>Which companies can enter combinations?</h2>
-            <span>{totalExcluded} excluded</span>
-          </div>
-          <div className="waterfall">
-            {Object.entries(meta.eligibility).map(([reason, n]) => (
-              <div key={reason}>
-                <div>
-                  <span>
-                    {{
-                      Eligible: "Meets the combination rules",
-                      "Unresolved / horizontal customer":
-                        "No specific customer industry",
-                      "Missing / invalid observed revenue":
-                        "Missing or unusable reported revenue",
-                      "Services / unresolved product":
-                        "Services or unclear product",
-                    }[reason] ?? reason}
-                  </span>
-                  <strong>{n}</strong>
-                </div>
-                <div className="waterfall-track">
-                  <span
-                    style={{
-                      width: (n / meta.total) * 100 + "%",
-                      background: reason === "Eligible" ? "#326a55" : "#b8c3b8",
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          <p>
-            <b>{meta.search_pool} companies enter the original search.</b> Of
-            the {meta.eligibility.Eligible || 0} that pass the basic checks,{" "}
-            {(meta.eligibility.Eligible || 0) - meta.search_pool} already cost
-            the whole budget or more on their own.
-          </p>
-          <p>
-            {scenario?.include_estimated ? "Your current scenario" : "The estimated-sales option in Combinations"} can
-            include otherwise eligible companies with no usable sales figure.
-            The ranking uses their peer estimates and shows the estimated share of each total.
-          </p>
-          <Explanation label="Why are there two missing-sales counts?">
-            {meta.missing_revenue} companies lack usable sales. Each row is
-            counted at its first failed check.{" "}
-            {meta.missing_by_exclusion["Unresolved / horizontal customer"] || 0}{" "}
-            failed the customer check and{" "}
-            {meta.missing_by_exclusion["Services / unresolved product"] || 0}{" "}
-            failed the product check first. The remaining{" "}
-            {meta.missing_by_exclusion["Missing / invalid observed revenue"] ||
-              0}{" "}
-            reached the sales check.
-          </Explanation>
-          <p className="muted">
-            Each company appears once. Companies from either tier can qualify
-            when they sell industry-specific software and report revenue.
-          </p>
-        </section>
-        <section className="card">
-          <div className="section-title">
-            <h2>Exchange rates used in the analysis</h2>
-            <span>From the brief · one euro counts as ${meta.fx.EUR} US</span>
-          </div>
-          <div className="fx-grid">
-            {Object.entries(meta.fx).map(([currency, rate]) => (
-              <div key={currency}>
-                <span>{currency}</span>
-                <strong>{rate}</strong>
-              </div>
-            ))}
-          </div>
-          <p className="muted">
-            {meta.assumed_currency} companies use an assumed USD currency.{" "}
-            {meta.missing_revenue} have missing revenue and use peer estimates
-            for valuation. {meta.unparsed_revenue} unparsed or invalid revenue
-            fields.
-          </p>
-        </section>
-      </div>
+
       <section className="card assumptions">
         <div className="section-title">
           <h2>Assumptions to verify</h2>

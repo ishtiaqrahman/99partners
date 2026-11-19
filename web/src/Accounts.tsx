@@ -11,10 +11,9 @@ import {
   Layers,
   LayoutGrid,
   ListFilter,
-  Plus,
   Search,
-  SlidersHorizontal,
-  Sparkles,
+  Coins,
+  Bookmark,
   Target,
   X,
 } from "lucide-react";
@@ -70,6 +69,21 @@ export function Accounts({
   const [saveName, setSaveName] = useState(""),
     [saving, setSaving] = useState(false),
     [tagFilter, setTagFilter] = useState("");
+  useEffect(() => {
+    function openPriorityList() {
+      const route = new URLSearchParams(location.hash.slice(1));
+      if (route.get("view") === "accounts" && route.get("tier") === "A") {
+        setFilters({ ...DEFAULT_FILTERS, tier: "A" });
+        setPage(1);
+        setTagFilter("");
+        setPreview(null);
+        setQuery("");
+      }
+    }
+    openPriorityList();
+    window.addEventListener("hashchange", openPriorityList);
+    return () => window.removeEventListener("hashchange", openPriorityList);
+  }, []);
   const allTags = [...new Set(Object.values(tags).flat())].sort();
   const taggedIds = tagFilter
     ? Object.entries(tags)
@@ -174,8 +188,7 @@ export function Accounts({
         " below " +
         money(filters.under),
   ]
-    .filter(Boolean)
-    .join(" · ");
+    .filter(Boolean);
   const sortLabel = {
     ref_id: "company ID",
     vertical_label: "customer industry",
@@ -194,11 +207,9 @@ export function Accounts({
     <>
       <div className="page-heading company-heading">
         <div>
-          <h1>Find companies to investigate</h1>
+          <h1>Company directory</h1>
           <p>
-            Review {number(meta.total)} companies for acquisition, check how
-            their values were estimated, and compare groups of three within a
-            budget.
+            Filter companies by outreach priority, customer industry or estimated price.
           </p>
           <div className="heading-actions">
             <button
@@ -238,7 +249,7 @@ export function Accounts({
           <Metric
             label="Outreach priority (Tier A)"
             value={number(meta.tiers.A || 0)}
-            note="Core software, independent ownership, and positive earnings evidence"
+            note="Meets all three outreach checks"
             icon={<Target size={18} />}
             accent
           />
@@ -251,8 +262,8 @@ export function Accounts({
           <Metric
             label="Reporting currency to confirm"
             value={number(meta.assumed_currency)}
-            note="Revenue treated as USD when currency is unclear"
-            icon={<SlidersHorizontal size={18} />}
+            note="Assumed USD"
+            icon={<Coins size={18} />}
           />
         </div>
         <Explanation label="How do the two lists overlap?">
@@ -283,7 +294,7 @@ export function Accounts({
       </section>
       <section className="search-panel" aria-label="Natural language filtering">
         <div className="query-intro">
-          <Sparkles size={17} />
+          <Search size={17} />
           <strong>Filter the company list</strong>
           <span>Describe a country, industry, tier or amount</span>
         </div>
@@ -411,10 +422,8 @@ export function Accounts({
             <p>
               Sorted by {sortLabel},{" "}
               {filters.descending ? "highest first" : "lowest first"}.{" "}
-              {filterSummary
-                ? "Applied filters · " + filterSummary + "."
-                : "Showing the full list."}{" "}
-              Open a company to check the evidence.
+              {filterSummary.length === 0 && "Showing the full list."}{" "}
+
             </p>
           </div>
           <a
@@ -424,16 +433,9 @@ export function Accounts({
             <Download size={16} /> Download all {number(meta.total)} companies
           </a>
         </div>
-        <Explanation label="How are companies prioritized?">
-          Tier A companies meet all three outreach criteria: core software for a
-          specific industry, independent ownership, and positive earnings
-          evidence. Tier B companies fall short on at least one criterion or
-          need more evidence. Both tiers can enter combinations.
-        </Explanation>
-        <small className="list-note">
-          Shortcut counts cover the full dataset. Adding a tier or missing-sales
-          filter keeps your other filters.
-        </small>
+        {filterSummary.length > 0 && <div className="chips" aria-label="Applied filters">
+          {filterSummary.map((label, i) => <Badge key={i}>{label}</Badge>)}
+        </div>}
         <div className="section-bar">
           <div className="view-tabs">
             <button
@@ -458,7 +460,7 @@ export function Accounts({
             </button>
           </div>
           <button className="text-button" onClick={() => setSaving(!saving)}>
-            <Plus size={15} /> Save view
+            <Bookmark size={15} /> Save view
           </button>
         </div>
         {(saved.length > 0 || saving) && (
@@ -742,7 +744,7 @@ export function Accounts({
                   </td>
                   <td>
                     <Badge tone={a.tier === "A" ? "green" : "neutral"}>
-                      {a.tier === "A" ? "A · Priority" : "B"}
+                      {a.tier === "A" ? "A · Call first" : "B · Later"}
                     </Badge>
                   </td>
                   <td className="numeric">
@@ -784,8 +786,8 @@ export function Accounts({
               <Search size={28} />
               <h3>No companies match this view</h3>
               <p>
-                {filterSummary
-                  ? "Active filters · " + filterSummary + ". "
+                {filterSummary.length > 0
+                  ? "Active filters · " + filterSummary.join(", ") + ". "
                   : ""}
                 Remove one filter or reset the list.
               </p>
@@ -826,6 +828,16 @@ export function Accounts({
             </button>
           </div>
         </div>
+        <Explanation label="How are companies prioritized?">
+          Tier A companies meet all three outreach criteria: core software for a
+          specific industry, independent ownership, and positive earnings
+          evidence. Tier B companies fall short on at least one criterion or
+          need more evidence. Both tiers can enter combinations.
+        </Explanation>
+        <small className="list-note">
+          Shortcut counts cover the full dataset. Adding a tier or missing-sales
+          filter keeps your other filters.
+        </small>
       </section>
     </>
   );

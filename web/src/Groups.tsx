@@ -151,22 +151,12 @@ export function Groups({
           <Download size={16} /> Download original top 10
         </a>
       </div>
-      <div className="combination-guide">
-        <p>
-          Both outreach tiers can qualify. Combinations are ranked by annual
-          revenue.
-        </p>
-        <Explanation label="Why can Tier B companies be included?">
-          Outreach tier determines who to contact first. A combination can
-          include an industry-specific add-on or a company without proof of
-          positive earnings if it reports annual revenue. At our original
-          prices, each $1 in add-on sales costs $2 to buy, while $1 in core
-          software sales costs $3. A fixed budget can favor add-ons. Filters on
-          the Companies page apply to that list only.
-        </Explanation>
-      </div>
       <div className="scenario-layout">
         <div className="scenario-results">
+          <button className="phone-edit button secondary" onClick={() => {
+            setSettingsOpen(true);
+            document.getElementById("scenario-settings")?.scrollIntoView({block:"start"});
+          }}><SlidersHorizontal size={15}/> Edit scenario</button>
           {error && <ErrorBox error={error} />}
           {baseline && scenario && (
             <div className="baseline-strip">
@@ -187,11 +177,6 @@ export function Groups({
               </div>
             </div>
           )}
-          {dirty && (
-            <div className="pending-note" role="status">
-              Settings changed. Calculate to update the results below.
-            </div>
-          )}
           {!result && <div className="loading">Loading combinations…</div>}
           {result && (
             <>
@@ -205,26 +190,17 @@ export function Groups({
               )}
               <div className="applied-settings">
                 <h2>{scenario ? "Scenario results" : "Original analysis"}</h2>
-                <p>
-                  Below {money(result.parameters.budget_cents)} ·{" "}
-                  {changedRoles.length
-                    ? changedRoles.map((role) =>
-                        productLabels[role] + " " + appliedMultiples[role]! / 100 + "×",
-                      ).join(", ")
-                    : result.parameters.uniform
-                      ? "2× revenue for all software"
-                      : "standard valuation rules"}
-                  {" · "}
-                  {result.parameters.core_only
-                    ? "core software only"
-                    : "all eligible software"}
-                  {" · "}
-                  {result.parameters.include_estimated ? "estimated sales allowed" : "reported sales only"}
-                  {" · "}
-                  {result.parameters.explicit_only
-                    ? "stated currency required"
-                    : "assumed currencies allowed"}
-                </p>
+                <div className="chips applied-rules" aria-label="Applied scenario settings">
+                  <Badge>Below {money(result.parameters.budget_cents)}</Badge>
+                  {changedRoles.length ? changedRoles.map((role) =>
+                    <Badge key={role}>{productLabels[role]} {appliedMultiples[role]! / 100}×</Badge>,
+                  ) : <Badge>{result.parameters.uniform ? "Uniform 2× pricing" : "Original multiples"}</Badge>}
+                  <Badge>{result.parameters.core_only ? "Core software only" : "All eligible software"}</Badge>
+                  <Badge tone={result.parameters.include_estimated ? "amber" : "neutral"}>
+                    {result.parameters.include_estimated ? "Estimated sales allowed" : "Reported sales only"}
+                  </Badge>
+                  <Badge>{result.parameters.explicit_only ? "Stated currency required" : "Assumed currencies allowed"}</Badge>
+                </div>
                 <p>
                   {number(eligibleCount)} companies meet the original eligibility
                   rules. {number(result.pool_size)} entered this search after
@@ -313,17 +289,10 @@ export function Groups({
                       </table>
                     </div>
                   )}
-                  <p>
-                    {scenario.comparison.entered.length > 0 &&
-                      "Added companies " +
-                        scenario.comparison.entered.join(", ") +
-                        ". "}
-                    {scenarioBest &&
-                      scenario.comparison.left.length > 0 &&
-                      "Replaced companies " +
-                        scenario.comparison.left.join(", ") +
-                        "."}
-                  </p>
+                  {scenarioBest && <div className="chips membership-changes">
+                    {scenario.comparison.entered.map((id) => <button key={id} className="badge green" onClick={() => open(id)}>Added · {id}</button>)}
+                    {scenario.comparison.left.map((id) => <button key={id} className="badge neutral" onClick={() => open(id)}>Removed · {id}</button>)}
+                  </div>}
                 </div>
               )}
               {scenario && changedRoles.length > 0 && (
@@ -355,15 +324,15 @@ export function Groups({
           )}
         </div>
         <details
-          className="scenario-controls"
+          id="scenario-settings" className="scenario-controls"
           open={settingsOpen}
           onToggle={(e) => setSettingsOpen(e.currentTarget.open)}
         >
           <summary className="section-title">
             <SlidersHorizontal size={18} />
-            <strong>Try a different budget, price or rule</strong>
+            <strong>Scenario settings</strong>
           </summary>
-          <p>Change the budget, multiples or rules, then calculate to see what changes.</p>
+
           <label className="budget-label">
             Budget limit <span>USD millions</span>
             <div className="budget-input">
@@ -402,6 +371,7 @@ export function Groups({
               </button>
             ))}
           </div>
+          <h3 className="settings-heading">Valuation multiples</h3>
           <label className="check-option">
             <input
               type="checkbox"
@@ -450,6 +420,7 @@ export function Groups({
             {!multipliersValid && <p role="status">Enter a multiple from 0.01× to 100× with up to two decimal places.</p>}
             <p>Estimated prices and combination rankings update together. Reported sales and outreach tiers stay the same.</p>
           </details>
+          <h3 className="settings-heading">Eligibility</h3>
           <label className="check-option">
             <input
               type="checkbox"
@@ -492,6 +463,11 @@ export function Groups({
           {params.include_estimated && params.explicit_only && (
             <p className="muted">Requiring a stated currency may exclude companies with estimated sales. The results show how many entered.</p>
           )}
+          {dirty && (
+            <div className="pending-note" role="status">
+              Unapplied changes
+            </div>
+          )}
           <button
             className="button primary full"
             disabled={
@@ -521,6 +497,20 @@ export function Groups({
             </span>
           </div>
         </details>
+      </div>
+      <div className="combination-guide">
+        <p>
+          Both outreach tiers can qualify. Combinations are ranked by annual
+          revenue.
+        </p>
+        <Explanation label="Why can Tier B companies be included?">
+          Outreach tier determines who to contact first. A combination can
+          include an industry-specific add-on or a company without proof of
+          positive earnings if it reports annual revenue. At our original
+          prices, each $1 in add-on sales costs $2 to buy, while $1 in core
+          software sales costs $3. A fixed budget can favor add-ons. Filters on
+          the Companies page apply to that list only.
+        </Explanation>
       </div>
       {result && result.groups.length > 0 && (
         <section className="rankings">
@@ -564,6 +554,7 @@ export function Groups({
                       <span className="rank-number">
                         {String(g.rank).padStart(2, "0")}
                       </span>
+                      {result.best_tie_count > 1 && g.revenue_cents === topGroup?.revenue_cents && g.valuation_cents === topGroup.valuation_cents && <small className="rank-tie">Tied</small>}
                     </td>
                     <td>
                       <div className="member-links">
@@ -670,7 +661,7 @@ function GroupCard({
             ? "First of " + result.groups.length + " groups shown"
             : "Combination " + group.rank}
         </div>
-        <Badge tone="green">3 customer industries</Badge>
+        <Badge tone="neutral">{group.members.map((member) => member.id).join(" + ")}</Badge>
       </div>
       <div className="group-totals">
         <div>
@@ -678,9 +669,7 @@ function GroupCard({
           <strong title={money(group.revenue_cents, true)}>
             {money(group.revenue_cents)}
           </strong>
-          {estimated > 0 && (
-            <small>{money(group.revenue_cents - estimated)} reported · {money(estimated)} estimated</small>
-          )}
+
         </div>
         <div>
           <span>Estimated price for all three</span>
@@ -689,6 +678,13 @@ function GroupCard({
           </strong>
         </div>
       </div>
+      {estimated > 0 && (
+        <figure className="sales-evidence">
+          <figcaption>Annual sales breakdown <strong>{money(group.revenue_cents, true)}</strong></figcaption>
+          <div className="sales-track" aria-hidden="true"><i style={{width: (100 * (group.revenue_cents - estimated) / group.revenue_cents) + "%"}} /></div>
+          <div className="sales-key"><span>Reported <b>{money(group.revenue_cents - estimated, true)}</b></span><span>Peer estimate <b>{money(estimated, true)}</b></span></div>
+        </figure>
+      )}
       <div
         className={
           "budget-bar" +
@@ -755,14 +751,14 @@ function GroupCard({
               </button>
               <small>{m.vertical}</small>
               <span className="member-evidence">
-                Tier {m.tier}
+                Tier {m.tier} · {m.tier === "A" ? "Call first" : "Later"}
                 {m.flags.length
                   ? " · " + m.flags.join(" · ")
                   : " · Explicit currency"}
               </span>
             </div>
             <div className="member-values">
-              <strong>{money(m.revenue_cents)} {m.estimated_revenue ? "estimated sales" : "sales"}</strong>
+              <strong className={m.estimated_revenue ? "estimated-amount" : undefined}>{money(m.revenue_cents)} {m.estimated_revenue ? "estimated sales" : "sales"}</strong>
               <small>
                 {m.multiple}× → {money(m.valuation_cents)} price
               </small>

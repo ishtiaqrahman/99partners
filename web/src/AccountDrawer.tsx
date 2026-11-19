@@ -1,6 +1,6 @@
 /** The account evidence panel connects original source text to tier, revenue conversion and valuation. Local analyst tags do not alter those decisions. */
 import { useEffect, useRef, useState } from "react";
-import { FileText, Plus, Target, X } from "lucide-react";
+import { CircleCheck, CircleMinus, FileText, Plus, Target, X } from "lucide-react";
 import { Account, api, money, customerIndustry, type Parameters } from "./types";
 import { scenarioPrice } from "./scenario-pricing";
 import { Badge, ErrorBox, Explanation, productLabels } from "./common";
@@ -98,10 +98,10 @@ export function AccountDrawer({
           <>
             <div className="drawer-heading">
               <Badge tone={a.tier === "A" ? "green" : "neutral"}>
-                Tier {a.tier}
+                Tier {a.tier} · {a.tier === "A" ? "Call first" : "Later"}
               </Badge>
-              <h2>Company {a.ref_id}</h2>
-              <p>{customerIndustry(a)}</p>
+              <h2>{customerIndustry(a)}</h2>
+              <p>Company {a.ref_id}</p>
               <div className="chips">
                 <Badge>{productLabels[a.product_role] ?? a.product_role}</Badge>
                 <Badge>{a.country}</Badge>
@@ -113,7 +113,7 @@ export function AccountDrawer({
                 {a.tier === "A" ? "First call (Tier A)" : "Later call (Tier B)"}
               </p>
               <p>
-                <b>Group search</b> ·{" "}
+                <b>Original group eligibility</b> ·{" "}
                 {a.grouping_status === "Eligible"
                   ? "Can enter before the budget check."
                   : a.grouping_status.startsWith("Missing")
@@ -151,7 +151,7 @@ export function AccountDrawer({
                 ].map(({ label, met, evidence }) => (
                   <li key={label}>
                     <strong>
-                      {met ? "Met" : "Not met"} · {label}
+                      {met ? <CircleCheck size={15}/> : <CircleMinus size={15}/>} {label} · {met ? "Met" : "Not met"}
                     </strong>
                     <span>{evidence}</span>
                   </li>

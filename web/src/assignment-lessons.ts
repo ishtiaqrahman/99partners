@@ -55,7 +55,7 @@ export const lessons = [
       {
         title: "What number should enter the calculation?",
         explanation:
-          "For a range, add the low and high numbers and divide by two. Multiply by the unit size and the exchange rate from the assignment. Save the two ends as well. Money is stored in cents so the budget check is exact.",
+          "For a range, add the low and high numbers and divide by two. Write the amount in full (3 million becomes 3,000,000), then convert it to US dollars. Save the two ends as well. Money is stored in cents so the budget check is exact.",
         source: excerpt(
           "cleaning.py",
           "rate = Decimal(FX",
@@ -96,7 +96,7 @@ export const lessons = [
     short: "Choose who to call",
     title: "Put the first calls in Tier A",
     purpose:
-      "The assignment asked us to choose a rule. We give a company first priority when we can answer yes to three questions.",
+      "We give a company first priority when we can answer yes to three questions.",
     parts: [
       {
         title: "Write down any check the company misses",
