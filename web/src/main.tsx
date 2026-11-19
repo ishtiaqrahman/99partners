@@ -172,6 +172,7 @@ function App() {
                   route={groupRoute}
                   onScreen={setGroupScreen}
                   defaultMultiples={meta.multiples}
+                  showDatasetExample={meta.input_name === "candidate_companies_v9.csv"}
                   eligibleCount={meta.eligibility.Eligible || 0}
                   open={(id) => navigate(view, id)}
                 />

@@ -25,12 +25,14 @@ import { multipleKey, PRODUCT_ROLES, scaledPrice, validOverrides } from "./scena
 export function Groups({
   eligibleCount,
   defaultMultiples,
+  showDatasetExample,
   open,
   route,
   onScreen,
 }: {
   eligibleCount: number;
   defaultMultiples: Record<string, number>;
+  showDatasetExample: boolean;
   open: (id: string) => void;
   route: string;
   onScreen: (screen: GroupScreen | null) => void;
@@ -499,17 +501,23 @@ export function Groups({
         </details>
       </div>
       <div className="combination-guide">
-        <p>
-          Both outreach tiers can qualify. Combinations are ranked by annual
-          revenue.
-        </p>
+        <p>Companies from either tier can qualify for a group.</p>
         <Explanation label="Why can Tier B companies be included?">
-          Outreach tier determines who to contact first. A combination can
-          include an industry-specific add-on or a company without proof of
-          positive earnings if it reports annual revenue. At our original
-          prices, each $1 in add-on sales costs $2 to buy, while $1 in core
-          software sales costs $3. A fixed budget can favor add-ons. Filters on
-          the Companies page apply to that list only.
+          <p><strong>Tier B means call later.</strong> The tier helps us decide who to contact first.</p>
+          <p>The group search asks which three companies bring in the most annual sales while serving three different types of customers and costing less than the budget.</p>
+          {showDatasetExample && (
+            <p>
+              <strong>Take company 0008.</strong> It sells a giveaway tool to
+              bingo halls. We’d call it later because the tool handles a smaller
+              task. It serves a specific type of customer and reports $3.914
+              million in annual sales. At its original estimated price of $7.828
+              million, it can fit alongside two companies that serve other types
+              of customers.{" "}
+              <button className="text-button" onClick={() => open("0008")}>
+                See company 0008
+              </button>
+            </p>
+          )}
         </Explanation>
       </div>
       {result && result.groups.length > 0 && (
