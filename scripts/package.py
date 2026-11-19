@@ -26,6 +26,8 @@ files = [
         "cloudflare/package-lock.json",
         "cloudflare/wrangler.jsonc",
         "cloudflare/src/chat.ts",
+        "cloudflare/src/revenue.ts",
+        "cloudflare/tests/revenue.test.mjs",
         "cloudflare/README.md",
     )
 ]
