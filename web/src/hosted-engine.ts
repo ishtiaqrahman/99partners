@@ -60,12 +60,17 @@ export function selectAccounts(accounts: Account[], partial: Partial<Filters>) {
     return (f.descending ? -order : order) || a.ref_id.localeCompare(b.ref_id);
   });
 }
-type Candidate = { account: Account; cost: number; revenue: number };
-type Trio = { ids: string[]; revenue: number; cost: number };
+type Candidate = { account: Account; cost: number; revenue: number; costSquared: bigint };
+type Trio = { ids: string[]; revenue: number; cost: number; balanceRank: number | bigint };
+
+function compareTotals(a: Omit<Trio, "ids">, b: Omit<Trio, "ids">) {
+  // The group prices are equal when the largest share breaks the tie.
+  return b.revenue - a.revenue || a.cost - b.cost ||
+    (a.balanceRank < b.balanceRank ? -1 : a.balanceRank > b.balanceRank ? 1 : 0);
+}
 function rank(a: Trio, b: Trio) {
   return (
-    b.revenue - a.revenue ||
-    a.cost - b.cost ||
+    compareTotals(a, b) ||
     a.ids.join("|").localeCompare(b.ids.join("|"))
   );
 }
@@ -79,6 +84,7 @@ export function optimizeHosted(
     throw new Error("Budget must be between $0.01 and $1 billion.");
   if (parameters.multiples_hundredths !== undefined && !validOverrides(parameters.multiples_hundredths))
     throw new Error("Enter multiples from 0.01× to 100× with up to two decimal places.");
+  const allShares = parameters.balance_method === "all_shares";
   const pool: Candidate[] = accounts
     .filter(
       (a) =>
@@ -86,12 +92,16 @@ export function optimizeHosted(
         (!explicit_only || a.currency_basis === "Explicit") &&
         (!core_only || a.product_role === "Core workflow"),
     )
-    .map((a) => ({
-      account: a,
-      revenue: a.revenue_cents ?? a.valuation_revenue_cents,
-      cost: scenarioPrice(a, parameters).valuation_cents,
-    }))
-    .filter((a) => a.cost < cap)
+    .flatMap((account) => {
+      const cost = scenarioPrice(account, parameters).valuation_cents;
+      if (cost >= cap) return [];
+      return [{
+        account,
+        revenue: account.revenue_cents ?? account.valuation_revenue_cents,
+        cost,
+        costSquared: allShares ? BigInt(cost) ** 2n : 0n,
+      }];
+    })
     .sort(
       (a, b) =>
         a.cost - b.cost || a.account.ref_id.localeCompare(b.account.ref_id),
@@ -121,26 +131,19 @@ export function optimizeHosted(
         const revenue = a.revenue + b.revenue + c.revenue;
         // Count even the ties that will fall outside the ten displayed rows.
         qualifyingCount++;
-        const first = best[0];
-        if (
-          !first ||
-          revenue > first.revenue ||
-          (revenue === first.revenue && cost < first.cost)
-        )
-          bestTieCount = 1;
-        else if (revenue === first.revenue && cost === first.cost)
-          bestTieCount++;
         const worst = best[9];
-        if (
-          worst &&
-          (revenue < worst.revenue ||
-            (revenue === worst.revenue && cost > worst.cost))
-        )
+        if (worst && (revenue < worst.revenue || (revenue === worst.revenue && cost > worst.cost)))
           continue;
+        const balanceRank = allShares ? a.costSquared + b.costSquared + c.costSquared : c.cost;
+        const totals = { revenue, cost, balanceRank };
+        const first = best[0];
+        const comparison = first ? compareTotals(totals, first) : -1;
+        if (comparison < 0) bestTieCount = 1;
+        else if (comparison === 0) bestTieCount++;
+        if (worst && compareTotals(totals, worst) > 0) continue;
         const candidate = {
+          ...totals,
           ids: [a.account.ref_id, b.account.ref_id, c.account.ref_id].sort(),
-          revenue,
-          cost,
         };
         if (!worst || rank(candidate, worst) < 0) {
           best.push(candidate);
@@ -208,7 +211,7 @@ export function compareScenario(snapshot: Snapshot, parameters: Parameters) {
         ? "The original winner remains optimal under these assumptions."
         : winner && winner.revenue_cents > original.revenue_cents
           ? "Another trio ranks higher on annual sales under these assumptions."
-          : "Revenue ties are resolved by lower valuation, then ordered account IDs.";
+          : "Ties use lower total price, then the selected purchase-balance rule, then company IDs.";
   return {
     ...result,
     comparison: {

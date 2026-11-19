@@ -174,8 +174,7 @@ export function Assignment({ meta }: { meta: Meta }) {
           <p>
             <a href="#view=assignment&account=0008">Company 0008</a> sells a
             giveaway tool to bingo halls. We would call it later because the
-            tool is an optional extra. It can still help form the first buying
-            group because we know its customers and its annual sales.{" "}
+            tool is an optional extra. It can still enter the group search because we know its customers and annual sales.{" "}
             <a href="#view=assignment&account=0053">Company 0053</a> earns a
             first call, but its sales are missing, so it is excluded from the original search.
           </p>

@@ -146,10 +146,15 @@ def build(path=DEFAULT_INPUT, output=ROOT / "outputs"):
         for i, member in enumerate(g["members"], 1):
             row[f"account_{i}"] = member["id"]
             row[f"vertical_{i}"] = member["vertical"]
+        total_price = g["valuation_cents"]
+        shares = [member["valuation_cents"] / total_price for member in g["members"]] if total_price else []
         row.update(
             revenue_cents=g["revenue_cents"],
             valuation_cents=g["valuation_cents"],
             headroom_cents=g["headroom_cents"],
+            largest_purchase_share_pct=round(100 * max(shares), 4) if shares else None,
+            balance_all_three_score=round(150 * (1 - sum(share ** 2 for share in shares)), 4)
+            if shares else None,
         )
         groups.append(row)
     # A real header survives zero feasible groups too.
@@ -157,7 +162,7 @@ def build(path=DEFAULT_INPUT, output=ROOT / "outputs"):
         group_keys = (
             ["rank"]
             + [k for i in range(1, 4) for k in (f"account_{i}", f"vertical_{i}")]
-            + ["revenue_usd", "valuation_usd", "headroom_usd"]
+            + ["revenue_usd", "valuation_usd", "headroom_usd", "largest_purchase_share_pct", "balance_all_three_score"]
         )
     output.mkdir(parents=True, exist_ok=True)
     destination = output / run_id

@@ -33,6 +33,7 @@ for changes in [
     {"uniform": True},
     {"multiples_hundredths": {"Vertical add-on": 250, "Core workflow": 275}},
     {"explicit_only": True},
+    {"balance_method": "all_shares"},
     {"include_estimated": True},
     {"include_estimated": True, "explicit_only": True},
     {"include_estimated": True, "core_only": True, "uniform": True,
@@ -124,6 +125,6 @@ for(const s of data.random_cases){
 }
 for(const q of data.queries)assert.deepEqual(interpretHosted(q.text,data.buyers),q.expected);
 assert.deepEqual(selectAccounts(data.accounts,{tier:'A',country:'Canada'}).map(a=>a.ref_id),data.manual_ids);
-console.log('Matched 11 full-data scenarios, 12 independent fixtures, 8 query interpretations, and account filters.');
+console.log('Matched 12 full-data scenarios, 12 independent fixtures, 8 query interpretations, and account filters.');
 """)
     subprocess.run(["node", str(verifier), str(fixture_path)], check=True)

@@ -444,9 +444,7 @@ export function Method({
           <p>
             In the supplied file, 0004 reports €2M. In the cleaned file its
             sales are $2.2M, in the tier file it is A, and in the valuation file
-            its estimated price is $6.6M. The first group row contains 0008,
-            0300 and 0533. Keep its ID as text when importing so 0004 stays
-            0004.
+            its estimated price is $6.6M. The combinations file shows annual sales, total price, and both balance measures. Import the ID columns as text to preserve values like 0004.
           </p>
           <dl className="field-key">
             {[
@@ -468,6 +466,8 @@ export function Method({
                 "Estimated price to buy the business or group.",
               ],
               ["headroom_usd", "Money left under the budget."],
+              ["largest_purchase_share_pct", "Percent of the total price taken by the most expensive company. Lower ranks higher after sales and total price tie."],
+              ["balance_all_three_score", "Score from 0 to 100 based on how evenly the price is split. Higher ranks higher when you select this method."],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt>

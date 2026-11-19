@@ -126,7 +126,43 @@ export function estimatedSales(group: Group) {
     0,
   );
 }
+export type BalanceMethod = "largest_share" | "all_shares";
+export const balanceLabels: Record<BalanceMethod, string> = {
+  largest_share: "Largest purchase share",
+  all_shares: "Balance across all three",
+};
+
+export function purchaseShare(price: number, total: number) {
+  return total > 0 ? new Intl.NumberFormat("en-US", {
+    style: "percent", maximumFractionDigits: 2,
+  }).format(price / total) : "—";
+}
+
+export function groupBalance(group: Group, method: BalanceMethod = "largest_share") {
+  if (!group.valuation_cents) return "—";
+  const prices = group.members.map((member) => member.valuation_cents);
+  if (method === "largest_share")
+    return purchaseShare(Math.max(...prices), group.valuation_cents);
+  const concentration = prices.reduce((sum, price) => sum + (price / group.valuation_cents) ** 2, 0);
+  const score = Math.min(100, Math.max(0, 150 * (1 - concentration)));
+  return score.toLocaleString("en-US", {maximumFractionDigits: 2}) + " / 100";
+}
+
+export function tiesOnRanking(a: Group, b: Group, method: BalanceMethod = "largest_share") {
+  if (a.revenue_cents !== b.revenue_cents || a.valuation_cents !== b.valuation_cents)
+    return false;
+  if (method === "all_shares") {
+    const squaredPrices = (group: Group) => group.members.reduce(
+      (sum, member) => sum + BigInt(member.valuation_cents) ** 2n, 0n,
+    );
+    return squaredPrices(a) === squaredPrices(b);
+  }
+  const largest = (group: Group) => Math.max(...group.members.map((member) => member.valuation_cents));
+  return largest(a) === largest(b);
+}
+
 export type Parameters = {
+  balance_method?: BalanceMethod;
   multiples_hundredths?: MultipleOverrides;
   include_estimated?: boolean;
   budget_cents: number;

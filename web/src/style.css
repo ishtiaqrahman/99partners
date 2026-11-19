@@ -2599,3 +2599,24 @@ footer {padding-right:76px;padding-bottom:54px;}
   .company-heading .heading-actions {margin-top:7px;}
   .account-section .results-heading {margin-bottom:6px;}
 }
+
+.balance-control {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.balance-control label {font-weight: 700;}
+.balance-control select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+.balance-control small,.group-balance small {color: var(--muted);}
+.group-balance {padding: 9px 12px; background: #f4f6f1; border-radius: 6px; margin: 10px 0;}
+.group-balance small {display: block;}

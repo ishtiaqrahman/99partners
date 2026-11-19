@@ -469,12 +469,12 @@ function WorkedExample({
             That leaves <b>{money(winner.headroom_cents)}</b> under the{" "}
             {money(cap)} budget. {number(result.best_tie_count)}{" "}
             {result.best_tie_count === 1 ? "group has" : "groups have"} the best
-            sales and price. The table shows up to ten groups in order.
+            sales, total price, and purchase balance. The table shows up to ten groups in order.
           </p>
           <p>
             <b>Try a tie.</b> Imagine two groups each sell $10M a year. One
             costs $21M and the other costs $22M. The $21M group comes first
-            because it costs less.
+            because it costs less. If their total prices also match, the purchase-balance rule decides which comes first.
           </p>
           <a className="walk-link" href="#view=groups">
             See the ranked groups <ArrowUpRight size={14} />

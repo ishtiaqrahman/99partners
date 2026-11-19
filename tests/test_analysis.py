@@ -96,7 +96,7 @@ def fixture(records):
     ]
 
 
-def oracle(accounts, cap):
+def oracle(accounts, cap, balance_method):
     # Independent Python enumeration intentionally shares no optimizer predicates.
     scored = []
     for trio in itertools.combinations(sorted(accounts, key=lambda a: a["ref_id"]), 3):
@@ -106,7 +106,9 @@ def oracle(accounts, cap):
         if total_cost >= cap:
             continue
         revenue = sum(a["revenue_cents"] for a in trio)
-        scored.append((-revenue, total_cost, tuple(a["ref_id"] for a in trio)))
+        costs = [a["valuation_cents"] for a in trio]
+        balance = sum(c ** 2 for c in costs) if balance_method == "all_shares" else max(costs)
+        scored.append((-revenue, total_cost, balance, tuple(a["ref_id"] for a in trio)))
     return sorted(scored)[:10]
 
 
@@ -129,7 +131,8 @@ def test_known_winner():
 
 
 @pytest.mark.parametrize("seed", range(8))
-def test_matches_exhaustive_oracle(seed):
+@pytest.mark.parametrize("balance_method", ["largest_share", "all_shares"])
+def test_matches_exhaustive_oracle(seed, balance_method):
     rng = random.Random(seed)
     rows = fixture(
         [
@@ -143,11 +146,34 @@ def test_matches_exhaustive_oracle(seed):
         ]
     )
     rng.shuffle(rows)
-    groups = optimize(rows, 80)["groups"]
+    groups = optimize(rows, 80, balance_method=balance_method)["groups"]
     actual = [
-        (-g["revenue_cents"], g["valuation_cents"], tuple(g["ids"])) for g in groups
+        (
+            -g["revenue_cents"],
+            g["valuation_cents"],
+            sum(m["valuation_cents"] ** 2 for m in g["members"])
+            if balance_method == "all_shares"
+            else max(m["valuation_cents"] for m in g["members"]),
+            tuple(g["ids"]),
+        )
+        for g in groups
     ]
-    assert actual == oracle(rows, 80)
+    assert actual == oracle(rows, 80, balance_method)
+
+
+def test_balance_methods_prefer_different_groups():
+    # Both groups sell and cost 30. The selector changes which one ranks first.
+    rows = fixture([
+        ("A", "dental", 12, 12), ("B", "bingo", 12, 12), ("C", "food", 6, 6),
+        ("D", "dental", 13, 13), ("E", "bingo", 9, 9), ("F", "food", 8, 8),
+    ])
+    for method, first, second in [
+        ("largest_share", ["A", "B", "C"], ["D", "E", "F"]),
+        ("all_shares", ["D", "E", "F"], ["A", "B", "C"]),
+    ]:
+        result = optimize(rows, 31, balance_method=method)
+        assert [g["ids"] for g in result["groups"][:2]] == [first, second]
+        assert result["best_tie_count"] == 1
 
 
 def test_all_tied_groups_are_counted_before_display_limit():
@@ -243,7 +269,10 @@ def test_exports_and_scenarios(tmp_path):
             for member in best["members"] if member.get("estimated_revenue")
         ] == [("0247", 713_050_000)]
         assert client.get("/api/accounts/0247").json()["revenue_cents"] is None
-        assert client.get("/api/groups").json()["groups"][0]["ids"] == ["0008", "0300", "0533"]
+        assert client.get("/api/groups").json()["groups"][0]["ids"] == ["0196", "0453", "0737"]
+        balanced = client.post("/api/scenarios", json={"balance_method": "all_shares"}).json()
+        assert balanced["parameters"]["balance_method"] == "all_shares"
+        assert balanced["groups"][1]["ids"] == ["0209", "0453", "0487"]
         repriced = client.post(
             "/api/scenarios", json={"multiples_hundredths": {"Vertical add-on": 250}}
         ).json()

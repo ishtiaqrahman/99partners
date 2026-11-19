@@ -3,6 +3,9 @@ import { optimizeHosted, type Snapshot } from "../../web/src/hosted-engine";
 import {
   money,
   estimatedSales,
+  balanceLabels,
+  groupBalance,
+  tiesOnRanking,
   type Account,
   type GroupResult,
   type ChatScreen,
@@ -302,8 +305,7 @@ function explainTie(result: GroupResult) {
     result.groups.length < 2 ||
     !result.groups.every(
       (group) =>
-        group.revenue_cents === top.revenue_cents &&
-        group.valuation_cents === top.valuation_cents,
+        tiesOnRanking(group, top, result.parameters.balance_method),
     )
   )
     return null;
@@ -326,13 +328,13 @@ function explainTie(result: GroupResult) {
     money(top.revenue_cents) +
     " in combined annual revenue** and **" +
     money(top.valuation_cents) +
-    " in total estimated value**." +
+    " in total estimated value** with the same purchase balance." +
     identicalRule +
     "\n\nThe search maximizes annual revenue among qualifying groups. These results leave " +
     money(top.headroom_cents) +
     " below the " +
     money(result.parameters.budget_cents) +
-    " valuation limit. Company IDs set the display order after the ties on revenue and value."
+    " valuation limit. Company IDs settle any remaining ties after purchase balance."
   );
 }
 
@@ -346,6 +348,7 @@ function validSettings(value: unknown): value is Parameters {
     p.budget_cents <= 100000000000 &&
     (p.multiples_hundredths === undefined || validOverrides(p.multiples_hundredths)) &&
     (p.include_estimated === undefined || typeof p.include_estimated === "boolean") &&
+    (p.balance_method === undefined || p.balance_method === "largest_share" || p.balance_method === "all_shares") &&
     [p.uniform, p.core_only, p.explicit_only].every(
       (flag) => typeof flag === "boolean",
     )
@@ -431,6 +434,7 @@ async function answerQuestion(
       !settings.core_only &&
       !settings.explicit_only &&
       !settings.include_estimated &&
+      settings.balance_method !== "all_shares" &&
       !Object.keys(settings.multiples_hundredths ?? {}).length);
   const visible = original ? baseline : optimizeHosted(accounts, settings!);
   const selected = visible.groups[(screen?.group?.rank ?? 1) - 1];
@@ -525,11 +529,11 @@ async function answerQuestion(
         "** under budget. " +
         (selected.rank === 1
           ? visible.best_tie_count === 1
-            ? "Only this group has the best sales and price. "
+            ? "Only this group ranks first after applying the tie-breakers. "
             : visible.best_tie_count +
-              " groups share the best sales and price. "
+              " groups tie for first after applying the balance rule. "
           : "") +
-        "Groups are sorted by highest sales, then lowest price, then company IDs."
+        "The search sorts by highest sales, then lowest total price, then purchase balance. Company IDs settle remaining ties."
       : "No three-company group fits the applied budget of " +
         money(visible.parameters.budget_cents) +
         " and these settings.";
@@ -552,7 +556,7 @@ async function answerQuestion(
         current.qualifying_count.toLocaleString("en-US") +
         " groups qualify**, **" +
         current.best_tie_count +
-        " share the best sales and price**, and **" +
+        " tie for first after applying the balance rule**, and **" +
         current.groups.length +
         " are displayed**." +
         details +
@@ -621,6 +625,8 @@ Also accepts ids (4-digit strings), keywords (a single exact phrase searched in 
             estimated_sales_usd: estimatedSales(g) / 100,
             companies_with_estimated_sales: g.members.filter((m) => m.estimated_revenue).map((m) => m.id),
             estimated_price_usd: g.valuation_cents / 100,
+            balance_method: balanceLabels[visible.parameters.balance_method ?? "largest_share"],
+            balance_result: groupBalance(g, visible.parameters.balance_method),
           }))
         : undefined,
       qualifying_groups: visible.qualifying_count,
@@ -635,12 +641,13 @@ Also accepts ids (4-digit strings), keywords (a single exact phrase searched in 
       tied_for_first: baseline.best_tie_count,
       companies_searched: baseline.pool_size,
       ranking_rules:
-        "Higher annual revenue first, then lower estimated value, then company IDs.",
+        "Higher annual revenue first, then lower total price, then the selected purchase-balance method, then company IDs.",
       verified_tie_explanation: tieExplanation,
       groups: baseline.groups.map((group) => ({
         rank: group.rank,
         combined_annual_revenue_usd: group.revenue_cents / 100,
         total_estimated_value_usd: group.valuation_cents / 100,
+        largest_purchase_share: groupBalance(group),
         budget_remaining_usd: group.headroom_cents / 100,
         members: group.members.map((member) => ({
           company_id: member.id,

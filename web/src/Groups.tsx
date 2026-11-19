@@ -13,6 +13,10 @@ import {
   Group,
   GroupResult,
   estimatedSales,
+  balanceLabels,
+  groupBalance,
+  purchaseShare,
+  tiesOnRanking,
   money,
   Parameters,
   GroupScreen,
@@ -129,15 +133,9 @@ export function Groups({
   const topGroup = result?.groups[0];
   const appliedMultiples = result?.parameters.multiples_hundredths ?? {};
   const changedRoles = PRODUCT_ROLES.filter((role) => appliedMultiples[role] !== undefined);
-  const tied =
-    !!result &&
-    !!topGroup &&
-    result.groups.length > 1 &&
-    result.groups.every(
-      (group) =>
-        group.revenue_cents === topGroup.revenue_cents &&
-        group.valuation_cents === topGroup.valuation_cents,
-    );
+  const balanceMethod = result?.parameters.balance_method ?? "largest_share";
+  const tied = !!result && !!topGroup && result.groups.length > 1 &&
+    result.groups.every((group) => tiesOnRanking(group, topGroup, balanceMethod));
   return (
     <>
       <div className="page-heading">
@@ -422,6 +420,20 @@ export function Groups({
             {!multipliersValid && <p role="status">Enter a multiple from 0.01× to 100× with up to two decimal places.</p>}
             <p>Estimated prices and combination rankings update together. Reported sales and outreach tiers stay the same.</p>
           </details>
+          <div className="balance-control">
+            <label htmlFor="balance-method">Purchase balance tie-breaker</label>
+            <select id="balance-method" value={params.balance_method ?? "largest_share"}
+              onChange={(event) => setParams({
+                ...params,
+                balance_method: event.currentTarget.value === "all_shares" ? "all_shares" : undefined,
+              })}>
+              <option value="largest_share">Largest purchase share (option 2)</option>
+              <option value="all_shares">Balance across all three (option 3)</option>
+            </select>
+            <small>{params.balance_method === "all_shares"
+              ? "All three prices count toward a score out of 100. An equal split scores 100. Higher ranks first."
+              : "A lower percentage means less of the price is tied up in one company."}</small>
+          </div>
           <h3 className="settings-heading">Eligibility</h3>
           <label className="check-option">
             <input
@@ -524,11 +536,16 @@ export function Groups({
         <section className="rankings">
           <div className="section-title">
             <h2>Top {result.groups.length} combinations shown</h2>
+            <button className="text-button" onClick={() => {
+              setSettingsOpen(true);
+              document.getElementById("scenario-settings")?.scrollIntoView({ block: "start" });
+              requestAnimationFrame(() => document.getElementById("balance-method")?.focus());
+            }}>Change balance method</button>
           </div>
           <p className="ranking-note">
             {tied
-              ? "All combinations shown tie on revenue and estimated value. Company IDs determine their order."
-              : "Higher annual revenue ranks first. Ties use lower estimated value, then company IDs."}
+              ? "All groups shown tie on sales, total price, and the selected balance measure. Company IDs determine their order."
+              : "Highest sales first, then lowest total price, then purchase balance. Company IDs settle any remaining ties."}
           </p>
           <p className="mobile-table-tools">
             Swipe across for the full comparison. Tap a company ID to see its
@@ -548,6 +565,7 @@ export function Groups({
                   <th>Customer industries</th>
                   <th className="numeric">Annual revenue</th>
                   <th className="numeric">Estimated value</th>
+                  <th className="numeric">{balanceLabels[balanceMethod]}</th>
                   <th className="numeric">Budget remaining</th>
                   <th />
                 </tr>
@@ -562,7 +580,7 @@ export function Groups({
                       <span className="rank-number">
                         {String(g.rank).padStart(2, "0")}
                       </span>
-                      {result.best_tie_count > 1 && g.revenue_cents === topGroup?.revenue_cents && g.valuation_cents === topGroup.valuation_cents && <small className="rank-tie">Tied</small>}
+                      {result.best_tie_count > 1 && topGroup && tiesOnRanking(g, topGroup, balanceMethod) && <small className="rank-tie">Tied</small>}
                     </td>
                     <td>
                       <div className="member-links">
@@ -597,6 +615,7 @@ export function Groups({
                     >
                       {money(g.valuation_cents)}
                     </td>
+                    <td className="numeric">{groupBalance(g, balanceMethod)}</td>
                     <td className="numeric">{money(g.headroom_cents, true)}</td>
                     <td>
                       <button
@@ -686,6 +705,11 @@ function GroupCard({
           </strong>
         </div>
       </div>
+      <p className="group-balance">
+        <strong>{balanceLabels[result.parameters.balance_method ?? "largest_share"]}</strong>
+        {" · "}{groupBalance(group, result.parameters.balance_method)}
+        <small>Used when groups have the same annual sales and total price.</small>
+      </p>
       {estimated > 0 && (
         <figure className="sales-evidence">
           <figcaption>Annual sales breakdown <strong>{money(group.revenue_cents, true)}</strong></figcaption>
@@ -723,11 +747,11 @@ function GroupCard({
         {result.best_tie_count > 1 ? (
           <>
             <b>{number(result.best_tie_count)} tie for first</b> on sales and
-            estimated price. Company IDs put the tied groups in a repeatable
+            estimated price and purchase balance. Company IDs put the tied groups in a repeatable
             order.
           </>
         ) : (
-          <>One group has the best sales and price.</>
+          <>One group ranks first after applying the tie-breakers.</>
         )}
       </p>
       {group.members.some(
@@ -770,6 +794,7 @@ function GroupCard({
               <small>
                 {m.multiple}× → {money(m.valuation_cents)} price
               </small>
+              <small>{purchaseShare(m.valuation_cents, group.valuation_cents)} of the group price</small>
             </div>
           </div>
         ))}

@@ -25,6 +25,7 @@ def optimize(
     core_only=False,
     multiples_hundredths=None,
     include_estimated=False,
+    balance_method="largest_share",
 ):
     """Search the entire eligible pool and return at most ten deterministic trios.
 
@@ -58,7 +59,7 @@ def optimize(
         if selected:
             db.executemany("INSERT INTO accounts VALUES (?, ?, ?, ?)", selected)
         rows = db.execute(
-            Path(__file__).with_name("groups.sql").read_text(), [budget_cents]
+            Path(__file__).with_name("groups.sql").read_text(), [balance_method, budget_cents]
         ).fetchall()
     by_id = {a["ref_id"]: a for a in accounts}
     groups = []
@@ -93,8 +94,8 @@ def optimize(
         )
     return dict(
         groups=groups,
-        qualifying_count=rows[0][5] if rows else 0,
-        best_tie_count=rows[0][6] if rows else 0,
+        qualifying_count=rows[0][6] if rows else 0,
+        best_tie_count=rows[0][7] if rows else 0,
         pool_size=len(selected),
         **({"estimated_pool_size": estimated_pool_size} if include_estimated else {}),
         elapsed_ms=round((time.perf_counter() - started) * 1000),
@@ -103,6 +104,7 @@ def optimize(
             uniform=uniform,
             explicit_only=explicit_only,
             core_only=core_only,
+            **({"balance_method": balance_method} if balance_method != "largest_share" else {}),
             **({"include_estimated": True} if include_estimated else {}),
             **({"multiples_hundredths": multiples_hundredths} if multiples_hundredths else {}),
         ),

@@ -7,7 +7,7 @@ requests compute in memory and never write the official export directory.
 from functools import lru_cache
 import os
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -39,6 +39,7 @@ class Scenario(BaseModel):
     explicit_only: bool = False
     core_only: bool = False
     include_estimated: bool = False
+    balance_method: Literal["largest_share", "all_shares"] = "largest_share"
     multiples_hundredths: dict[str, Annotated[int, Field(strict=True, ge=1, le=10000)]] = Field(default_factory=dict)
 
     @field_validator("multiples_hundredths")
@@ -93,8 +94,8 @@ def create_app(input_path=DEFAULT_INPUT, output_path=ROOT / "outputs"):
         return baseline
 
     @lru_cache(maxsize=32)
-    def run_scenario(budget_cents, uniform, explicit_only, core_only, multiple_items, include_estimated):
-        return optimize(accounts, budget_cents, uniform, explicit_only, core_only, dict(multiple_items), include_estimated)
+    def run_scenario(budget_cents, uniform, explicit_only, core_only, multiple_items, include_estimated, balance_method):
+        return optimize(accounts, budget_cents, uniform, explicit_only, core_only, dict(multiple_items), include_estimated, balance_method)
 
     @app.post("/api/scenarios")
     def scenario(body: Scenario):
@@ -102,6 +103,7 @@ def create_app(input_path=DEFAULT_INPUT, output_path=ROOT / "outputs"):
             body.budget_cents, body.uniform, body.explicit_only, body.core_only,
             tuple(sorted(body.multiples_hundredths.items())),
             body.include_estimated,
+            body.balance_method,
         )
         comparison = None
         if baseline["groups"]:
@@ -126,7 +128,7 @@ def create_app(input_path=DEFAULT_INPUT, output_path=ROOT / "outputs"):
             elif winner and winner["revenue_cents"] > first["revenue_cents"]:
                 reason = "Another trio ranks higher on annual sales under these assumptions."
             else:
-                reason = "Revenue ties are resolved by lower valuation, then ordered account IDs."
+                reason = "Ties use lower total price, then the selected purchase-balance rule, then company IDs."
             comparison = dict(
                 reason=reason,
                 original_cost_cents=cost,

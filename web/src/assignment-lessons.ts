@@ -258,7 +258,7 @@ export const lessons = [
       {
         title: "Sort, break ties, then show up to ten",
         explanation:
-          "Highest sales come first. If two groups sell the same amount, put the cheaper one first. If both totals match, use the company IDs in order. LIMIT 10 takes the first ten rows of that sorted list.",
+          "Highest sales come first. If two groups sell the same amount, put the cheaper one first. If both totals match, use the selected purchase-balance measure. By default, a lower share for the most expensive company ranks higher. The second method rewards a more even split across all three companies. Company IDs settle any remaining ties. LIMIT 10 takes the first ten rows.",
         source: excerpt(
           "groups.sql",
           "ORDER BY revenue_cents DESC,",
