@@ -484,20 +484,27 @@ function WorkedExample({
     default:
       return (
         <>
-          <h3>Would $2.99 fit?</h3>
-          <Trace
-            items={[
-              ["Prices for three companies", "$1 + $1 + $0.99"],
-              ["With a $3 limit", "Yes · one cent left"],
-              ["With a $2.99 limit", "No · exactly the limit"],
-            ]}
-          />
-          <p>
-            From the project folder, run <code>make test</code> to check the
-            rules. A successful run ends with “passed.” Run{" "}
-            <code>make analyze</code> to generate these four files in{" "}
-            <code>outputs/current/</code>.
-          </p>
+          <h3>What should happen when we run the test?</h3>
+          <p>Imagine three companies cost <strong>$1.00, $1.00 and $0.99</strong>. That adds up to <strong>$2.99</strong>. We give the program three different situations and check that it gives the answer we worked out by hand.</p>
+          <dl className="validation-cases">
+            <div>
+              <dt>Try a $3.00 budget</dt>
+              <dd><strong>Keep the group.</strong> Its $2.99 total is one cent below the budget.</dd>
+            </div>
+            <div>
+              <dt>Try a $2.99 budget</dt>
+              <dd><strong>Return no group.</strong> The total hits the budget exactly. The rule requires a total below it.</dd>
+            </div>
+            <div>
+              <dt>Try with only two companies</dt>
+              <dd><strong>Return no group.</strong> Even with room in the budget, a group needs exactly three companies.</dd>
+            </div>
+          </dl>
+          <p>The code uses cents. <code>300</code> means $3.00 and <code>299</code> means $2.99. Run <code>make test</code> from the project folder to check these rules.</p>
+          <div className="validation-downloads">
+            <h3>Download the results</h3>
+            <p>These four spreadsheets let someone review the cleaned data and follow the decisions from individual companies to the ranked groups. To create the files locally, run <code>make analyze</code> and open <code>outputs/current/</code>.</p>
+          </div>
           <div className="walk-files">
             {meta.files.map((file, i) => (
               <a key={file} href={"/api/downloads/" + file}>

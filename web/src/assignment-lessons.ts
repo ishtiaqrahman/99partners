@@ -271,14 +271,14 @@ export const lessons = [
     id: "check",
     chapter: 1,
     short: "Check and save",
-    title: "Check a known answer before sharing the files",
+    title: "Check that the buying rules work",
     purpose:
-      "We can test the budget rule on three tiny numbers we can add by hand. Then we can trust what the same rule does with millions of dollars.",
+      "Before sharing the results, we check two rules with an example we can add up ourselves. A group needs exactly three companies, and their total price must be below the budget.",
     parts: [
       {
-        title: "Ask the program to prove the example",
+        title: "Compare the program’s answer with the expected answer",
         explanation:
-          "Each line starting with assert says what must be true. The test checks that the group appears at one limit and disappears at the other. A mismatch makes the test fail.",
+          "The test gives the program three pretend companies with prices of 100, 100 and 99 cents. Each line that starts with assert checks what the program returned. If any answer differs from what we expect, the test fails.",
         source: excerpt(
           "test_analysis.py",
           "def test_cents_and_empty",
@@ -286,9 +286,9 @@ export const lessons = [
         ),
       },
       {
-        title: "Write the four answers to spreadsheets",
+        title: "List the four files we share",
         explanation:
-          "The first three files each have one row per company. The last file has one row per group. You can use the company IDs to follow a result back to the original spreadsheet.",
+          "This code lists the four CSV files the analysis saves. The first three have one row per company. The last has one row per group. You can use the company IDs to trace a group back to its company records.",
         source: excerpt("pipeline.py", "FILES = [", "]"),
       },
     ],

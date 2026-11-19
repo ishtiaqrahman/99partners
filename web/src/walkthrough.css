@@ -447,3 +447,27 @@
   font-size: .9rem;
   line-height: 1.55;
 }
+
+.validation-cases {
+  display: grid;
+  gap: .65rem;
+  margin-block: 1rem;
+}
+.validation-cases > div {
+  background: #fff;
+  border: 1px solid #dce3d9;
+  border-radius: .5rem;
+  padding: .7rem .85rem;
+}
+.validation-cases dt {
+  font-weight: 600;
+  margin-bottom: .2rem;
+}
+.validation-cases dd {
+  margin: 0;
+}
+.validation-downloads {
+  border-top: 1px solid #dce3d9;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+}
