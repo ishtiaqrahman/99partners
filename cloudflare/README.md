@@ -24,17 +24,14 @@ aggregates and original results from the analysis snapshot, and bundles the
 submission README and selected analysis code at build time. The model plans
 which data to read and explains the results. The Worker computes the numbers.
 
-Set a private access code once using Wrangler. Set the Gemini key as a separate
-Worker secret when available. Enter secret values at Wrangler’s secure prompt.
+Anyone with the site link can use chat. To use Gemini, enter the API key at Wrangler’s secure prompt.
 
 ```sh
 cd cloudflare
-./node_modules/.bin/wrangler secret put CHAT_ACCESS_CODE
 ./node_modules/.bin/wrangler secret put GEMINI_API_KEY
 ```
 
 Gemini 3.1 Flash-Lite is used when configured. Otherwise the Worker uses
 GPT-OSS 20B through the Cloudflare Workers AI binding. Inference consumes the
-configured provider’s quota. The chat requires the access code and limits
-requests. The access code and API key stay outside the source and build files.
+configured provider’s quota. The Worker limits requests. The API key stays on the server.
 The local Python edition links to the hosted chat.

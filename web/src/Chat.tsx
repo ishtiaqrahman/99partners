@@ -4,7 +4,6 @@ import {
   BookOpen,
   Database,
   Layers,
-  Lock,
   MessageSquare,
   Send,
   X,
@@ -37,15 +36,6 @@ const prompts = [
 ];
 const hosted = import.meta.env.VITE_CLOUDFLARE_STATIC === "1";
 
-function rememberCode(value: string) {
-  try {
-    if (value) sessionStorage.setItem("99-chat-code", value);
-    else sessionStorage.removeItem("99-chat-code");
-  } catch {
-    // Storage restrictions only affect remembering the code across refreshes.
-  }
-}
-
 export function Chat({
   open,
   screen,
@@ -55,13 +45,6 @@ export function Chat({
   screen: ChatScreen;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [code, setCode] = useState(() => {
-    try {
-      return sessionStorage.getItem("99-chat-code") ?? "";
-    } catch {
-      return "";
-    }
-  });
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [pendingQuestion, setPendingQuestion] = useState("");
@@ -93,7 +76,7 @@ export function Chat({
 
   async function ask() {
     const content = question.trim();
-    if (!content || !code.trim() || pending) return;
+    if (!content || pending) return;
     const userTurn = { role: "user", content } as const;
     const history = [userTurn] as Pick<Turn, "role" | "content">[];
     let length = content.length;
@@ -112,14 +95,12 @@ export function Chat({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Chat-Code": code.trim(),
         },
         body: JSON.stringify({ messages: history, screen }),
         signal: AbortSignal.timeout(65000),
       });
       if (!response.ok) {
         const failure = await response.json().catch(() => null);
-        if (response.status === 401) rememberCode("");
         setError(failure?.error ?? "Chat is unavailable. Try again.");
         return;
       }
@@ -130,7 +111,6 @@ export function Chat({
         { role: "assistant", content: result.answer, sources: result.sources },
       ]);
       setQuestion("");
-      rememberCode(code.trim());
     } catch {
       setError(
         "The answer took too long or the connection dropped. Try again.",
@@ -282,25 +262,6 @@ export function Chat({
                 void ask();
               }}
             >
-              {!code && (
-                <p className="chat-help">
-                  Use the chat code from the person who shared this dashboard.
-                  The pages and spreadsheets are open to everyone with the link.
-                </p>
-              )}
-              <label className="chat-code">
-                <span>
-                  <Lock size={14} /> Chat access code
-                </span>
-                <input
-                  type="password"
-                  autoComplete="off"
-                  maxLength={128}
-                  value={code}
-                  onChange={(event) => setCode(event.target.value)}
-                  required
-                />
-              </label>
               <label className="chat-question">
                 <span>Your question</span>
                 <textarea
@@ -321,7 +282,7 @@ export function Chat({
               <button
                 type="submit"
                 className="button primary"
-                disabled={pending || !question.trim() || !code.trim()}
+                disabled={pending || !question.trim()}
               >
                 <Send size={15} /> {pending ? "Answering…" : "Ask"}
               </button>

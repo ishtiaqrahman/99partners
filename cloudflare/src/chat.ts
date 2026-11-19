@@ -16,7 +16,6 @@ interface Env {
   CHAT_LIMIT: {
     limit(options: { key: string }): Promise<{ success: boolean }>;
   };
-  CHAT_ACCESS_CODE?: string;
   GEMINI_API_KEY?: string;
 }
 
@@ -77,19 +76,6 @@ function allowedMessages(input: unknown): input is Message[] {
     ) &&
     input.reduce((sum, message) => sum + message.content.length, 0) <=
       MAX_HISTORY
-  );
-}
-
-async function verifiedCode(candidate: string, expected: string) {
-  const encode = (value: string) => new TextEncoder().encode(value);
-  const hashes = await Promise.all(
-    [candidate, expected].map(
-      async (code) =>
-        new Uint8Array(await crypto.subtle.digest("SHA-256", encode(code))),
-    ),
-  );
-  return (
-    hashes[0].reduce((diff, value, i) => diff | (value ^ hashes[1][i]), 0) === 0
   );
 }
 
@@ -691,17 +677,6 @@ export default {
     if (url.pathname !== "/api/chat") return env.ASSETS.fetch(request);
     if (request.method !== "POST")
       return reply({ error: "Send a question using the chat form." }, 405);
-    if (!env.CHAT_ACCESS_CODE)
-      return reply({ error: "Chat is awaiting setup." }, 503);
-
-    const offeredCode = request.headers.get("X-Chat-Code") ?? "";
-    if (
-      !offeredCode ||
-      offeredCode.length > 128 ||
-      !(await verifiedCode(offeredCode, env.CHAT_ACCESS_CODE))
-    ) {
-      return reply({ error: "Enter the chat access code to continue." }, 401);
-    }
     if (Number(request.headers.get("Content-Length")) > MAX_BODY) {
       return reply(
         {

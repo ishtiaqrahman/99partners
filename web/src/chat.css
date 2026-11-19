@@ -54,8 +54,7 @@
   font-size: 16px;
   line-height: 1.25;
 }
-.chat-panel-actions,
-.chat-code span {
+.chat-panel-actions {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -162,7 +161,6 @@
   font-size: 13px;
   font-weight: 600;
 }
-.chat-form input,
 .chat-form textarea {
   min-width: 0;
   border: 1px solid #cddccd;
@@ -171,10 +169,6 @@
   font: inherit;
   color: var(--ink);
   background: white;
-}
-.chat-form input {
-  width: 210px;
-  max-width: 100%;
 }
 .chat-form textarea {
   resize: vertical;
@@ -201,7 +195,6 @@
     width: 52px;
     height: 52px;
   }
-  .chat-form input,
   .chat-form textarea {
     font-size: 16px;
   }
